@@ -1,0 +1,16 @@
+# Blender MTL File: 'PAK FA Su-57_Low_Poly_001.blend'
+# Material Count: 1
+
+newmtl Black
+Ns 1.000000
+Ka 0.000000 0.000000 0.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd StarSparrow_Red.png
+norm Textures/StarSparrow_Normal.png
+map_Ke Textures/StarSparrow_Emissive.png
+map_kS Textures/StarSparrow_Specular.png
