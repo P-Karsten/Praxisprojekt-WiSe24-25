@@ -250,7 +250,7 @@ class Scene(private val window: GameWindow) {
             var ascale=Random().nextFloat(0.005f,0.01f)
 
             rendertemp.scale(Vector3f1(ascale,ascale,ascale))
-            rendertemp.translate(Vector3f1(Random().nextFloat(-10000f,10000f),Random().nextFloat(-10000f,10000f),Random().nextFloat(-10000f,10000f)))
+            rendertemp.translate(Vector3f1(Random().nextFloat(-10000f,10000f),Random().nextFloat(0f,1f),Random().nextFloat(-10000f,10000f)))
             asteroidlist.add(rendertemp)
         }
 
@@ -353,12 +353,13 @@ class Scene(private val window: GameWindow) {
             }
 
             println(score)
-            println(vmaxa)
-            score+=1
+            score+=1f
             if(score.toInt()%100==0)
-                vmaxa*=1.01f
-                vmaxa2*=1.0001f
-
+            {
+                println(vmaxa)
+                vmaxa*=1.1f
+                vmaxa2*=1.01f
+            }
         if(score.toInt()%100==0){
 
 
@@ -369,7 +370,7 @@ class Scene(private val window: GameWindow) {
             var ascale=Random().nextFloat(6f,10f)
 
             rendertemp.scale(Vector3f1(ascale,ascale,ascale))
-            rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+            rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(0f,1f),Random().nextFloat(-100f,100f)))
             asteroidlist2.add(rendertemp)
 
         }
@@ -425,7 +426,7 @@ class Scene(private val window: GameWindow) {
         }
         if (window.getKeyState(GLFW_KEY_D) == true) {
             if(cammode==0){
-            spaceship.rotate(0.0f, 0.0f, -0.01f)
+                spaceship.rotate(0.0f, -0.01f, 0.0f)
 
                 }
 
@@ -440,7 +441,7 @@ class Scene(private val window: GameWindow) {
         }
         if (window.getKeyState(GLFW_KEY_A) == true) {
             if(cammode==0){
-            spaceship.rotate(0.0f, 0.0f, 0.01f)
+                spaceship.rotate(0.0f, 0.01f, 0.00f)
 
                 }
             else{
@@ -578,7 +579,7 @@ class Scene(private val window: GameWindow) {
                 game_over.translate(Vector3f1(0f,250f,0f))
                 reset_game.translate(Vector3f1(0f,250f,0f))
                 end_game.translate(Vector3f1(0f,250f,0f))
-                Moon2.translate(Vector3f1(0f,250f,0f))
+                Moon2.translate(Vector3f1(0f,1000f,0f))
                 setSpaceshipPositionToStart()
             }
         //}
