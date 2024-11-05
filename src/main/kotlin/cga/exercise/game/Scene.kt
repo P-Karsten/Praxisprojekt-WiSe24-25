@@ -13,27 +13,24 @@ import cga.framework.GLError
 import cga.framework.GameWindow
 import cga.framework.ModelLoader
 import cga.framework.OBJLoader.loadOBJ
-import org.lwjgl.glfw.GLFW.*
-import org.lwjgl.opengl.GL30.*
-import org.joml.*
-import java.util.Random
-import java.io.File
-import kotlinx.serialization.*
-import kotlinx.serialization.json.Json
-
-import org.joml.Vector3f as Vector3f1
-
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.call.*
-import io.ktor.client.request.*
+import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import org.joml.Math
+import org.joml.Vector2f
+import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.opengl.GL30.*
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-
+import java.util.*
+import org.joml.Vector3f as Vector3f1
 
 /**
  * Created 29.03.2023.
@@ -116,8 +113,11 @@ class Scene(private val window: GameWindow) {
     private val collisionCheckInterval: Float = 0.1f
 
 
-    @Serializable data class GameData(
+
+    @Serializable
+    data class GameData(
         val spaceshipPosition: List<Float>,
+        val spaceshiprotation: Vector3f1,
         val asteroidPositions: List<List<Float>>,
         val action: String,
         val reward: Float,
@@ -128,6 +128,7 @@ class Scene(private val window: GameWindow) {
 
     fun collectData(
         spaceshipPos: Vector3f1,
+        spaceshiprotation: Vector3f1,
         asteroidPositions: List<Vector3f1>,
         action: String,
         reward: Float,
@@ -135,20 +136,60 @@ class Scene(private val window: GameWindow) {
     ) {                             //rotation spaceship
         val data = GameData(
             spaceshipPosition = listOf(spaceshipPos.x, spaceshipPos.y, spaceshipPos.z),
+            spaceshiprotation = spaceship.getRotation(),
             asteroidPositions = asteroidPositions.map { listOf(it.x, it.y, it.z) },
             action = action,
             reward = reward,
             time = time
         )
         gameDataset.add(data)
+
         println(gameDataset)
     }
-    fun saveDataset(dataset: List<GameData>, filename: String) {
-        val jsonData = Json.encodeToString(gameDataset)
-        File(filename).writeText(jsonData)
-    }
+    //fun saveDataset(dataset: List<GameData>, filename: String) {
+    //    val jsonData = Json.encodeToString(gameDataset)
+    //    File(filename).writeText(jsonData)
+    //}
 
     //scene setup
+    suspend fun testapi() {
+        // Create HttpClient with JSON support
+        val client = HttpClient(CIO) {
+            install(ContentNegotiation) {
+                json(Json { prettyPrint = true; isLenient = true })
+            }
+        }
+
+        // Prepare the data to send
+        val dataToSend = GameData(
+            spaceshipPosition = listOf(0.0f, 1.44f, 0.0f),
+            spaceshiprotation = Vector3f1(0.0f, 0.0f, 1.571f),
+            asteroidPositions = listOf(
+                listOf(46.48f, 0.0017f, -9.41f)
+                // Add other sample positions as needed
+            ),
+            action = "",
+            reward = 1.0f,
+            time = 4.288f
+        )
+
+        try {
+            // Sending a POST request to the FastAPI server
+            val postResponse: GameData = client.get("http://127.0.0.1:8000/get/") {
+                contentType(ContentType.Application.Json)
+                //setBody(dataToSend)  // Send GameData as request body
+            }.body()  // Extract the response body as GameData
+
+            // Print the response (example)
+            println("POST Response: spaceshipPosition=${postResponse.spaceshipPosition}, action=${postResponse.action}, reward=${postResponse.reward}")
+
+        } catch (e: Exception) {
+            println("Error sending request: ${e.localizedMessage}")
+        } finally {
+            // Close the client after use
+            client.close()
+        }
+    }
     init {
 
         camera = TronCamera()
@@ -159,33 +200,7 @@ class Scene(private val window: GameWindow) {
         camera_fp.rotate(-0.610865f,0f,0f)
         camera_fp.translate(Vector3f1(0.0f, 3f, -5f))
 
-    suspend fun testapi(){
-        // Create an HttpClient with JSON support using the new plugin system
-        val client = HttpClient(CIO) {
-            install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    isLenient = true
-                })
-            }
-        }
 
-        // Sending a POST request to FastAPI and receiving the response as DataModel
-        val dataToSend = DataModel(id = 123, message = "Hello from Kotlin")
-        val postResponse: DataModel = client.post("http://127.0.0.1:8000/send/") {
-            headers {
-                append("Content-Type", ContentType.Application.Json.toString())  // Set content type in headers
-            }
-            setBody(dataToSend)  // Use setBody() to set the request body
-        }.body()  // Extract the response body as DataModel
-        println("POST Response: ID=${postResponse.id}, Message=${postResponse.message}")
-
-        // Sending a GET request to FastAPI and receiving the response as DataModel
-        val getResponse: DataModel = client.get("http://127.0.0.1:8000/get/").body()  // Use body() to extract the response as DataModel
-        println("GET Response: ID=${getResponse.id}, Message=${getResponse.message}")
-
-        client.close()
-        }
 
         //Skybox
         val cu = loadOBJ("assets/models/skybox.obj", true, true)
@@ -258,12 +273,12 @@ class Scene(private val window: GameWindow) {
         spaceship.translate(initialSpaceshipPosition)
 
 
-        skybox.translate(spaceship.getWorldPosition())
+
         spaceship.scale(Vector3f1(0.8f, 0.8f, 0.8f))
         spaceship.translate(initialSpaceshipPosition)
 
 
-        skybox.translate(spaceship.getWorldPosition())
+        //skybox.translate(spaceship.getWorldPosition())
         skybox.scale(Vector3f1(1850f,1850f,1850f))
 
 
@@ -337,7 +352,7 @@ class Scene(private val window: GameWindow) {
 
 
 
-    fun render(dt: Float, t: Float) {
+    fun render(dt: Float, t: Float)= runBlocking {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         staticShader.use()
 
@@ -482,7 +497,11 @@ class Scene(private val window: GameWindow) {
         }
 
 
-        collectData(spaceship.getWorldPosition(),asteroidPositions = asteroidlist.map { it.getWorldPosition() },inputkey,score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        collectData(spaceship.getWorldPosition(),spaceship.getRotation(),asteroidPositions = asteroidlist.map { it.getWorldPosition() },inputkey,score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+
+
+
+                testapi()
 
 
 
@@ -490,11 +509,12 @@ class Scene(private val window: GameWindow) {
 
 
     fun update(dt: Float, t: Float) {
+        //skybox.translate(spaceship.getPosition())
         collisionCheckTimer += dt
         checkCollisionSpaceship()
         if (b_menu ==true){
             checkCollisionMenu()
-            saveDataset(gameDataset,"testdata1")
+            //saveDataset(gameDataset,"testdata1")
         }
         if(shoot==true)
             checkCollisionAsteroid()
@@ -646,7 +666,7 @@ class Scene(private val window: GameWindow) {
         b_menu = true
     }
     private fun checkCollisionMenu(){
-            saveDataset(gameDataset,"testdata1")
+            //saveDataset(gameDataset,"testdata1")
             val shotPosition = ray.getWorldPosition()
             val shotPosition2 = ray2.getWorldPosition()
             val check_end = end_game.getWorldPosition()

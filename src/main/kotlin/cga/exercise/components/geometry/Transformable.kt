@@ -213,4 +213,20 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
         return worldZAxis.normalize()
        // throw NotImplementedError()
     }
+    fun getRotation(): Vector3f {
+        val xAxis = getXAxis()
+        val yAxis = getYAxis()
+        val zAxis = getZAxis()
+
+        // Berechne die Yaw (Rotation um die y-Achse)
+        val yaw = Math.atan2(xAxis.z.toDouble(), xAxis.x.toDouble()).toFloat()
+
+        // Berechne die Pitch (Rotation um die x-Achse)
+        val pitch = Math.asin(-xAxis.y.toDouble()).toFloat()
+
+        // Berechne die Roll (Rotation um die z-Achse)
+        val roll = Math.atan2(yAxis.y.toDouble(), zAxis.y.toDouble()).toFloat()
+
+        return Vector3f(pitch, yaw, roll)
+    }
 }
