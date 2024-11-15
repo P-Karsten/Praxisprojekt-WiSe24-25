@@ -18,7 +18,7 @@ class Vector3f1(BaseModel):
 
 class GameData(BaseModel):
     spaceshipPosition: List[float]
-    spaceshiprotation: Vector3f1
+    spaceshipRotation: Vector3f1
     asteroidPositions: List[List[float]]
     action: str
     reward: float
@@ -31,16 +31,12 @@ async def receive_game_data(data: GameData):
 
     # Simulate a response by sending back the received data with a slight modification
     response_data = GameData(
-        spaceshipPosition=[pos + 1 for pos in data.spaceshipPosition],  # example modification
-        spaceshiprotation=Vector3f1(
-            x=data.spaceshiprotation.x + 1,
-            y=data.spaceshiprotation.y,
-            z=data.spaceshiprotation.z
-        ),
+        spaceshipPosition=[pos for pos in data.spaceshipPosition],  # example modification
+        spaceshipRotation=data.spaceshipRotation,
         asteroidPositions=data.asteroidPositions,
         action="processed_" + data.action,
-        reward=data.reward + 10.0,
-        time=data.time + 1.0
+        reward=data.reward,
+        time=data.time
     )
     return response_data
 
@@ -50,7 +46,7 @@ async def send_game_data():
     # Simulate data that could be sent in a GET request
     simulated_data = GameData(
         spaceshipPosition=[1.0, 2.0, 3.0],
-        spaceshiprotation=Vector3f1(x=0.0, y=1.0, z=0.0),
+        spaceshipRotation=Vector3f1(x=0.0, y=1.0, z=0.0),
         asteroidPositions=[[5.5, 6.6, 7.7], [1.1, 2.2, 3.3]],
         action="simulate_action",
         reward=50.0,

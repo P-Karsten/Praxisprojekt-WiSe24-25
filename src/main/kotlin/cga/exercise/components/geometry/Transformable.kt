@@ -1,8 +1,8 @@
 package cga.exercise.components.geometry
 
+import cga.exercise.game.Scene
 import org.joml.Matrix4f
 import org.joml.Vector3f
-
 open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var parent: Transformable? = null) {
 
     /**
@@ -213,7 +213,7 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
         return worldZAxis.normalize()
        // throw NotImplementedError()
     }
-    fun getRotation(): Vector3f {
+    fun getRotation(): Scene.Vector3f {
         val xAxis = getXAxis()
         val yAxis = getYAxis()
         val zAxis = getZAxis()
@@ -227,6 +227,6 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
         // Berechne die Roll (Rotation um die z-Achse)
         val roll = Math.atan2(yAxis.y.toDouble(), zAxis.y.toDouble()).toFloat()
 
-        return Vector3f(pitch, yaw, roll)
+        return Scene.Vector3f(pitch, yaw, roll)
     }
 }

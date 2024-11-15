@@ -22,11 +22,14 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.joml.Math
 import org.joml.Vector2f
+import org.joml.Vector3fc
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL30.*
+import java.io.File
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -113,11 +116,15 @@ class Scene(private val window: GameWindow) {
     private val collisionCheckInterval: Float = 0.1f
 
 
+    @Serializable
+    sealed class Vector3fc
 
+    @Serializable
+    data class Vector3f(val x: Float, val y: Float, val z: Float) : Vector3fc()
     @Serializable
     data class GameData(
         val spaceshipPosition: List<Float>,
-        val spaceshiprotation: Vector3f1,
+        val spaceshipRotation: Vector3f,
         val asteroidPositions: List<List<Float>>,
         val action: String,
         val reward: Float,
@@ -128,7 +135,7 @@ class Scene(private val window: GameWindow) {
 
     fun collectData(
         spaceshipPos: Vector3f1,
-        spaceshiprotation: Vector3f1,
+        spaceshipRotation: Vector3f,
         asteroidPositions: List<Vector3f1>,
         action: String,
         reward: Float,
@@ -136,7 +143,7 @@ class Scene(private val window: GameWindow) {
     ) {                             //rotation spaceship
         val data = GameData(
             spaceshipPosition = listOf(spaceshipPos.x, spaceshipPos.y, spaceshipPos.z),
-            spaceshiprotation = spaceship.getRotation(),
+            spaceshipRotation = spaceship.getRotation(),
             asteroidPositions = asteroidPositions.map { listOf(it.x, it.y, it.z) },
             action = action,
             reward = reward,
@@ -144,12 +151,12 @@ class Scene(private val window: GameWindow) {
         )
         gameDataset.add(data)
 
-        println(gameDataset)
+        //println(gameDataset)
     }
-    //fun saveDataset(dataset: List<GameData>, filename: String) {
-    //    val jsonData = Json.encodeToString(gameDataset)
-    //    File(filename).writeText(jsonData)
-    //}
+    fun saveDataset(dataset: List<GameData>, filename: String) {
+        val jsonData = Json.encodeToString(gameDataset)
+       File(filename).writeText(jsonData)
+    }
 
     //scene setup
     suspend fun testapi() {
@@ -161,23 +168,13 @@ class Scene(private val window: GameWindow) {
         }
 
         // Prepare the data to send
-        val dataToSend = GameData(
-            spaceshipPosition = listOf(0.0f, 1.44f, 0.0f),
-            spaceshiprotation = Vector3f1(0.0f, 0.0f, 1.571f),
-            asteroidPositions = listOf(
-                listOf(46.48f, 0.0017f, -9.41f)
-                // Add other sample positions as needed
-            ),
-            action = "",
-            reward = 1.0f,
-            time = 4.288f
-        )
-
+        val dataToSend = gameDataset.last()
+        //val jsonString = Json.encodeToString(dataToSend)
         try {
             // Sending a POST request to the FastAPI server
-            val postResponse: GameData = client.get("http://127.0.0.1:8000/get/") {
+            val postResponse: GameData = client.post("http://127.0.0.1:8000/send/") {
                 contentType(ContentType.Application.Json)
-                //setBody(dataToSend)  // Send GameData as request body
+                setBody(dataToSend)  // Send GameData as request body
             }.body()  // Extract the response body as GameData
 
             // Print the response (example)
@@ -382,7 +379,7 @@ class Scene(private val window: GameWindow) {
         Moon2.render(staticShader, Vector3f1(1f,1f,1f))
 
 
-        if(shoot2==true){
+       /* if(shoot2==true){
             pointLight2 = PointLight(Vector3f1(0f,1f,0f), Vector3f1(5.0f,0.0f,5.0f))
             pointLight2.parent=ray2
             ray2.render(staticShader, Vector3f1(10f,0.1f,0.1f))
@@ -401,19 +398,19 @@ class Scene(private val window: GameWindow) {
                 rayl2=0
 
             }
-        }
+        }*/
         if(shoot==true){
             ray.render(staticShader, Vector3f1(10f,0.1f,0.1f))
             pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(5.0f,0.0f,0.0f))
             pointLight4.parent=ray
             pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
-            ray.translate(Vector3f1(0f,1f,0f))
+            ray.translate(Vector3f1(0f,2f,0f))
             rayl++
             if(rayl==50)
                 shoot2=true
 
             if(rayl>=100){
-                ray.translate(Vector3f1(0f,-100f,0f))
+                ray.translate(Vector3f1(0f,-200f,0f))
                 pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(0.0f,0.0f,0.0f))
                 pointLight4.parent=ray
                 pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
@@ -498,10 +495,7 @@ class Scene(private val window: GameWindow) {
 
 
         collectData(spaceship.getWorldPosition(),spaceship.getRotation(),asteroidPositions = asteroidlist.map { it.getWorldPosition() },inputkey,score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
-
-
-
-                testapi()
+        testapi()
 
 
 
@@ -514,7 +508,7 @@ class Scene(private val window: GameWindow) {
         checkCollisionSpaceship()
         if (b_menu ==true){
             checkCollisionMenu()
-            //saveDataset(gameDataset,"testdata1")
+            saveDataset(gameDataset,"testdata1")
         }
         if(shoot==true)
             checkCollisionAsteroid()
