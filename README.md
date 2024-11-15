@@ -1,4 +1,4 @@
-# CGASoSe2023
+# Praxisprojekt 24/25
 - MouseWheel Camera Steuerung
 - L Shader wechsel
 - C Rotate Camera
