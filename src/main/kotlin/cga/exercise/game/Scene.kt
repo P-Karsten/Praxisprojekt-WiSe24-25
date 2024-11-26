@@ -595,16 +595,18 @@ class Scene(private val window: GameWindow) {
             val asteroidPosition = asteroid.getWorldPosition().add(Vector3f1(0f,6f,0f))
 
             val distance = spaceshipPosition.distance(asteroidPosition)
+
+            if (distance < 12.0f) {
+                iterator.remove()
+                asteroid.cleanup()
+                GoTo_Menu()
+            }
+
             if(distance< spaceshipPosition.distance(Vector3f1(cAsteroid.x,cAsteroid.y,cAsteroid.z)))
             {
                 cAsteroid.x = asteroidPosition.x
                 cAsteroid.y = asteroidPosition.y
                 cAsteroid.z = asteroidPosition.z
-            }
-            if (distance < 7.0f) {
-                iterator.remove()
-                asteroid.cleanup()
-                GoTo_Menu()
             }
         }
 

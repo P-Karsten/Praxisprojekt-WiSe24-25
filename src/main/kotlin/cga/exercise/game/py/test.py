@@ -61,8 +61,8 @@ async def receive_game_data(data: GameData):
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(5)
         # Example for using image as input (channel-first; channel-last also works):
-        low=np.full(7, -300, dtype=np.float32)
-        high=np.full(7, 300, dtype=np.float32)
+        low=np.full(7, -1700, dtype=np.float32)
+        high=np.full(7, 1700, dtype=np.float32)
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
 
     def step(self, action):
