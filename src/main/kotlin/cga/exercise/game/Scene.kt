@@ -57,7 +57,8 @@ class Scene(private val window: GameWindow) {
     var pause =true
     var rayl= 0
     var inputkey= ""
-    var action= ""
+    var cAsteroid=Vector3f(100f,100f,100f)
+    var action= 6
     var speed = -0.1f
     var shoot =false
     var cammode =0
@@ -119,13 +120,12 @@ class Scene(private val window: GameWindow) {
     sealed class Vector3fc
 
     @Serializable
-    data class Vector3f(val x: Float, val y: Float, val z: Float) : Vector3fc()
+    data class Vector3f(var x: Float, var y: Float, var z: Float) : Vector3fc()
     @Serializable
     data class GameData(
         val spaceshipPosition: List<Float>,
         val spaceshipRotation: Vector3f,
-        val asteroidPositions: List<List<Float>>,
-        val action: String,
+        val closestAsteroid: Vector3f,
         val reward: Float,
         val time: Float
     )
@@ -135,16 +135,14 @@ class Scene(private val window: GameWindow) {
     fun collectData(
         spaceshipPos: Vector3f1,
         spaceshipRotation: Vector3f,
-        asteroidPositions: List<Vector3f1>,
-        action: String,
+        closestAsteroid: Vector3f,
         reward: Float,
         time: Float
     ) {                             //rotation spaceship
         val data = GameData(
             spaceshipPosition = listOf(spaceshipPos.x, spaceshipPos.y, spaceshipPos.z),
             spaceshipRotation = spaceship.getRotation(),
-            asteroidPositions = asteroidPositions.map { listOf(it.x, it.y, it.z) },
-            action = action,
+            closestAsteroid = cAsteroid,
             reward = reward,
             time = time
         )
@@ -162,7 +160,7 @@ class Scene(private val window: GameWindow) {
         // Create HttpClient with JSON support
         val client = HttpClient(CIO) {
             install(ContentNegotiation) {
-                json(Json { prettyPrint = true; isLenient = true })
+                json(Json { prettyPrint = true; isLenient = true; ignoreUnknownKeys=true })
             }
         }
 
@@ -177,8 +175,7 @@ class Scene(private val window: GameWindow) {
             }.body()  // Extract the response body as GameData
 
             // Print the response (example)
-            println("POST Response: spaceshipPosition=${postResponse.spaceshipPosition}, action=${postResponse.action}, reward=${postResponse.reward}")
-            action = postResponse.action
+            println("POST Response: ${postResponse}")
         } catch (e: Exception) {
             println("Error sending request: ${e.localizedMessage}")
         } finally {
@@ -469,7 +466,7 @@ class Scene(private val window: GameWindow) {
         }
 
 
-        collectData(spaceship.getWorldPosition(),spaceship.getRotation(),asteroidPositions = asteroidlist.map { it.getWorldPosition() },inputkey,score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), closestAsteroid = cAsteroid,score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
 
 
@@ -480,11 +477,11 @@ class Scene(private val window: GameWindow) {
     fun update(dt: Float, t: Float) {
         //RL-Controls
         when(action) {
-            "W" -> spaceship.translate(Vector3f1(0f, 0f, speed))
-            "A" -> spaceship.rotate(0.0f, 0.01f, 0.00f)
-            "S" -> spaceship.translate(Vector3f1(0f, 0f, 0.2f))
-            "D" -> spaceship.rotate(0.0f, -0.01f, 0.0f)
-            "P" -> shoot=true
+            0 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
+            1 -> spaceship.rotate(0.0f, 0.01f, 0.00f)     //A
+            2 -> spaceship.translate(Vector3f1(0f, 0f, 0.2f))  //S
+            3 -> spaceship.rotate(0.0f, -0.01f, 0.0f)    //D
+            4 -> shoot=true                                           //P
         }
         //skybox.translate(spaceship.getPosition())
         collisionCheckTimer += dt
@@ -513,7 +510,6 @@ class Scene(private val window: GameWindow) {
             inputkey="D"
             if(cammode==0){
                 spaceship.rotate(0.0f, -0.01f, 0.0f)
-
                 }
 
             else{
@@ -556,9 +552,12 @@ class Scene(private val window: GameWindow) {
             if(cammode==0)
             {
                 cammode=1
+
             }
-            else
-                cammode=0
+            else {
+                cammode = 0
+
+            }
         }
         if (window.getKeyState(GLFW_KEY_B) == true) {
 
@@ -589,32 +588,26 @@ class Scene(private val window: GameWindow) {
     private fun checkCollisionSpaceship() {
         val spaceshipPosition = spaceship.getWorldPosition()
 
-        val iterator = asteroidlist.iterator()
-        val iterator2 = asteroidlist2.iterator()
+        val iterator = asteroidlist2.iterator()
+
         while (iterator.hasNext()) {
             val asteroid = iterator.next()
             val asteroidPosition = asteroid.getWorldPosition().add(Vector3f1(0f,6f,0f))
 
             val distance = spaceshipPosition.distance(asteroidPosition)
-
+            if(distance< spaceshipPosition.distance(Vector3f1(cAsteroid.x,cAsteroid.y,cAsteroid.z)))
+            {
+                cAsteroid.x = asteroidPosition.x
+                cAsteroid.y = asteroidPosition.y
+                cAsteroid.z = asteroidPosition.z
+            }
             if (distance < 7.0f) {
                 iterator.remove()
                 asteroid.cleanup()
                 GoTo_Menu()
             }
         }
-        while (iterator2.hasNext()) {
-            val asteroid = iterator2.next()
-            val asteroidPosition = asteroid.getWorldPosition().add(Vector3f1(0f,6f,0f))
 
-            val distance = spaceshipPosition.distance(asteroidPosition)
-
-            if (distance < 12.0f) {
-                iterator2.remove()
-                asteroid.cleanup()
-                GoTo_Menu()
-            }
-        }
     }
 
     private fun GoTo_Menu() {
@@ -791,3 +784,7 @@ class Scene(private val window: GameWindow) {
         glDepthFunc(comparisonSpecs); GLError.checkThrow()
     }
 }
+
+
+
+
