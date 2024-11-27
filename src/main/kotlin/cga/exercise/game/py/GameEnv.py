@@ -4,6 +4,7 @@ import numpy as np
 from enum import Enum
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import DQN
+from pydantic import BaseModel
 
 import httpx
 
@@ -17,19 +18,20 @@ apiURL = 'http://127.0.0.1:8000/'
     #FORWARD = 2
     #BACK = 3
     #SHOOT = 4
-
+class Actions(BaseModel):
+    action: str
 
 
 def sendAction(action):
-    actionInt = int(action)
-    print(f'Typ... : {type(actionInt)}')
+    action = int(action)
+    #print(f'Typ... : {type(pckAction)}')
     try:
         with httpx.Client() as client:
             response = client.post(apiURL + 'sendAction', json=action)
             response.raise_for_status()
             print('sended action...')
     except Exception as e:
-        print(f'Error sending action: {actionInt} - {e}')
+        print(f'Error sending action: {action} - {e}')
 
 
 def fetchGameData():
@@ -45,7 +47,7 @@ def fetchGameData():
                 'spaceship_position':np.array(data['spaceshipPosition'], dtype=np.float32),
                 'spaceship_rotation': spaceship_rotation,
                 #'spaceship_rotation':np.array(data['spaceshipRotation'], dtype=np.float32),
-                'nextAsterioid_position':np.array(data['closestAsterioid'], dtype=np.float32),
+                'nextAsteroid_position':np.array(data['closestAsteroid'], dtype=np.float32),
             }
             return gameData
         
@@ -54,7 +56,7 @@ def fetchGameData():
         return {
                 'spaceship_position': np.zeros(3, dtype=np.float32),
                 'spaceship_rotation': np.zeros(1, dtype=np.float32),
-                'nextAsterioid_position': np.zeros(3, dtype=np.float32)
+                'nextAsteroid_position': np.zeros(3, dtype=np.float32)
             }
 
 
@@ -73,7 +75,7 @@ class GameEnv(gym.Env):
         # W, A, S, D, P (shift)
         self.action_space = spaces.Discrete(5)
 
-        # spaceship pos, next asteriood pos, spaceship rotation
+        # spaceship pos, next asteroid pos, spaceship rotation
         self.observation_space = spaces.Dict({
             'spaceship_position': spaces.Box(
                 low=np.array([pos_LOW, pos_LOW, pos_LOW]),
@@ -85,7 +87,7 @@ class GameEnv(gym.Env):
                 high=np.array([rot_HIGH]),
                 dtype=np.float32
             ),
-            'nextAsterioid_position': spaces.Box(
+            'nextAsteroid_position': spaces.Box(
                 low=np.array([pos_LOW, pos_LOW,pos_LOW]),
                 high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
                 dtype=np.float32
@@ -101,7 +103,8 @@ class GameEnv(gym.Env):
     def step(self, action):
         reward = 0
         sendAction(action)
-        print(f'Action: {action}')
+
+        #print(f'Action: {action}')
 
         # update state
         self.state = fetchGameData()
@@ -135,6 +138,6 @@ class GameEnv(gym.Env):
 env = GameEnv()
 check_env(env)
 
-model = DQN('MbpPolicy', env, verbose=1)
-model.learn(total_timesteps=timesteps)
+#model = DQN('MbpPolicy', env, verbose=1)
+#model.learn(total_timesteps=timesteps)
 

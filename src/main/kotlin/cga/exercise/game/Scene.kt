@@ -126,8 +126,8 @@ class Scene(private val window: GameWindow) {
         val spaceshipPosition: List<Float>,
         val spaceshipRotation: Vector3f,
         val closestAsteroid: Vector3f,
-        val reward: Float,
-        val time: Float
+        //val reward: Float,
+        //val time: Float
     )
 
     var gameDataset = mutableListOf<GameData>()
@@ -136,15 +136,15 @@ class Scene(private val window: GameWindow) {
         spaceshipPos: Vector3f1,
         spaceshipRotation: Vector3f,
         closestAsteroid: Vector3f,
-        reward: Float,
-        time: Float
+        //reward: Float,
+        //time: Float
     ) {                             //rotation spaceship
         val data = GameData(
             spaceshipPosition = listOf(spaceshipPos.x, spaceshipPos.y, spaceshipPos.z),
             spaceshipRotation = spaceship.getRotation(),
             closestAsteroid = cAsteroid,
-            reward = reward,
-            time = time
+            //reward = reward,
+            //time = time
         )
         gameDataset.add(data)
 
@@ -466,7 +466,7 @@ class Scene(private val window: GameWindow) {
         }
 
 
-        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), closestAsteroid = cAsteroid,score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), closestAsteroid = cAsteroid)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
 
 

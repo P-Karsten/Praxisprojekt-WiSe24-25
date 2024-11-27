@@ -8,6 +8,7 @@ from typing import List
 from typing import List, Dict
 import numpy as np
 import enum as Enum
+from fastapi import Body
 
 app = FastAPI()
 
@@ -25,9 +26,10 @@ class GameData(BaseModel):
     #time: float
 
 class Actions(BaseModel):
-    action: int
+    action: str
 
 savedData: GameData = None
+savedActions: Actions = None
 
 # Endpoint to handle POST requests with GameDatas
 @app.post("/send/")
@@ -52,7 +54,7 @@ async def send_game_data():
     print({
             "spaceshipPosition": savedData.spaceshipPosition,
             "spaceshipRotation": savedData.spaceshipRotation.y,
-            "closestAsterioid": [
+            "closestAsteroid": [
                 savedData.closestAsteroid.x,
                 savedData.closestAsteroid.y,
                 savedData.closestAsteroid.z
@@ -62,7 +64,7 @@ async def send_game_data():
     return {
             "spaceshipPosition": savedData.spaceshipPosition,
             "spaceshipRotation": savedData.spaceshipRotation.y,
-            "closestAsterioid": [
+            "closestAsteroid": [
                 savedData.closestAsteroid.x,
                 savedData.closestAsteroid.y,
                 savedData.closestAsteroid.z
@@ -70,9 +72,9 @@ async def send_game_data():
         }
 
 @app.post("/sendAction")
-async def receive_action(data):
+async def receive_action(data: int = Body(...)):
     print(f"Received action: {data}")
-    return data["action"]
+    return data
 
 
 @app.post("/getAction")
