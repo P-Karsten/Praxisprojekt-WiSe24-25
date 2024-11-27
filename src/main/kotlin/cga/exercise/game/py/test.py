@@ -9,6 +9,7 @@ from typing import List, Dict
 import numpy as np
 import enum as Enum
 from fastapi import Body
+from starlette.responses import JSONResponse
 
 app = FastAPI()
 
@@ -25,11 +26,11 @@ class GameData(BaseModel):
     #reward: float
     #time: float
 
-class Actions(BaseModel):
-    action: str
+class Action(BaseModel):
+    action: int =6
 
 savedData: GameData = None
-savedActions: Actions = None
+savedActions: Action = None
 
 # Endpoint to handle POST requests with GameDatas
 @app.post("/send/")
@@ -74,9 +75,10 @@ async def send_game_data():
 @app.post("/sendAction")
 async def receive_action(data: int = Body(...)):
     print(f"Received action: {data}")
+    Action.action=data
     return data
 
 
-@app.post("/getAction")
+@app.get("/getAction",response_model=Action)
 async def getAction():
-    return
+    return Action

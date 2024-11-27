@@ -57,8 +57,8 @@ class Scene(private val window: GameWindow) {
     var pause =true
     var rayl= 0
     var inputkey= ""
-    var cAsteroid=Vector3f(100f,100f,100f)
-    var action= 6
+    var cAsteroid=Vector3f(1000f,1000f,1000f)
+
     var speed = -0.1f
     var shoot =false
     var cammode =0
@@ -117,6 +117,8 @@ class Scene(private val window: GameWindow) {
 
 
     @Serializable
+    data class Action(var action:Int)
+    @Serializable
     sealed class Vector3fc
 
     @Serializable
@@ -129,7 +131,7 @@ class Scene(private val window: GameWindow) {
         //val reward: Float,
         //val time: Float
     )
-
+    var action= 6
     var gameDataset = mutableListOf<GameData>()
 
     fun collectData(
@@ -166,7 +168,7 @@ class Scene(private val window: GameWindow) {
 
         // Prepare the data to send
         val dataToSend = gameDataset.last()
-        //val jsonString = Json.encodeToString(dataToSend)
+
         try {
             // Sending a POST request to the FastAPI server
             val postResponse: GameData = client.post("http://127.0.0.1:8000/send/") {
@@ -174,14 +176,22 @@ class Scene(private val window: GameWindow) {
                 setBody(dataToSend)  // Send GameData as request body
             }.body()  // Extract the response body as GameData
 
-            // Print the response (example)
-            println("POST Response: ${postResponse}")
+            //get Action
+            val postResponse2:Action = client.get("http://127.0.0.1:8000/getAction") {
+                contentType(ContentType.Application.Json)
+
+            }.body()
+            println("POST Response: ${postResponse2}")
+            action=postResponse2.action
+
+
         } catch (e: Exception) {
             println("Error sending request: ${e.localizedMessage}")
         } finally {
             // Close the client after use
             client.close()
         }
+
     }
     init {
 

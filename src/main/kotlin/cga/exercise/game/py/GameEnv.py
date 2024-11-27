@@ -4,6 +4,7 @@ import numpy as np
 from enum import Enum
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import DQN
+from stable_baselines3.common.logger import configure
 from pydantic import BaseModel
 
 import httpx
@@ -120,6 +121,8 @@ class GameEnv(gym.Env):
         truncated = False
         info = {}
 
+
+
         return self.state, reward, self.done, truncated, info
     
     def reset(self, seed=None, options=None):
@@ -136,8 +139,12 @@ class GameEnv(gym.Env):
 
 
 env = GameEnv()
-check_env(env)
+from stable_baselines3 import DQN
+from stable_baselines3.common.env_checker import check_env
 
-#model = DQN('MbpPolicy', env, verbose=1)
-#model.learn(total_timesteps=timesteps)
+check_env(env)  # Check for compliance
+model = DQN("MultiInputPolicy", env, verbose=1)
+model.learn(total_timesteps=5000)
+new_logger = configure("logs", ["stdout", "tensorboard"])
+model.set_logger(new_logger)
 
