@@ -9,18 +9,17 @@ from pydantic import BaseModel
 
 import httpx
 
-GOAL = 10000
-timesteps = 500
+
+timesteps = 5000
 apiURL = 'http://127.0.0.1:8000/'
 
 
-    #LEFT = 0
-    #RIGHT = 1
-    #FORWARD = 2
-    #BACK = 3
+    #FORWARD = 0
+    #LEFT= 1
+    #BACK = 2
+    #RIGHT = 3
     #SHOOT = 4
-class Actions(BaseModel):
-    action: str
+
 
 
 def sendAction(action):
@@ -42,12 +41,11 @@ def fetchGameData():
             response.raise_for_status()
             data = response.json()
 
-            spaceship_rotation = np.array([data['spaceshipRotation']], dtype=np.float32) 
+
 
             gameData = {
                 'spaceship_position':np.array(data['spaceshipPosition'], dtype=np.float32),
-                'spaceship_rotation': spaceship_rotation,
-                #'spaceship_rotation':np.array(data['spaceshipRotation'], dtype=np.float32),
+                'spaceship_rotation':np.array(data['spaceshipRotation'], dtype=np.float32),
                 'nextAsteroid_position':np.array(data['closestAsteroid'], dtype=np.float32),
             }
             return gameData
@@ -63,7 +61,7 @@ def fetchGameData():
 
 class GameEnv(gym.Env):
     """Custom Environment that follows gym interface"""
-    metadata = {"render.modes": ["human"], 'render_fps': 25}
+    metadata = {"render.modes": ["human"]}
 
     def __init__(self):
         super(GameEnv, self).__init__()
@@ -105,18 +103,12 @@ class GameEnv(gym.Env):
         reward = 0
         sendAction(action)
 
-        #print(f'Action: {action}')
+
 
         # update state
         self.state = fetchGameData()
 
 
-        # Logic to compute the reward and done state can go here
-        if np.linalg.norm(self.state['spaceship_position']) < 10:
-            reward = 10  # Example: Reward for getting close to the asteroid
-        else:
-            reward = -1  # Penalty for other actions
-        self.done = reward >= GOAL  # Episode ends when GOAL is achieved
 
         truncated = False
         info = {}
@@ -144,7 +136,9 @@ from stable_baselines3.common.env_checker import check_env
 
 check_env(env)  # Check for compliance
 model = DQN("MultiInputPolicy", env, verbose=1)
-model.learn(total_timesteps=5000)
+model.learn(total_timesteps=timesteps)
+#tensorboard
 new_logger = configure("logs", ["stdout", "tensorboard"])
+
 model.set_logger(new_logger)
 

@@ -2,9 +2,7 @@
 # pip install fastapi uvicorn
 #Ausführen in py ordner     python -m uvicorn test:app --reload
 from fastapi import FastAPI
-from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List
 from typing import List, Dict
 import numpy as np
 import enum as Enum
@@ -23,14 +21,12 @@ class GameData(BaseModel):
     spaceshipPosition: List[float]
     spaceshipRotation: Vector3f1
     closestAsteroid: Vector3f1
-    #reward: float
-    #time: float
 
 class Action(BaseModel):
     action: int =6
 
 savedData: GameData = None
-savedActions: Action = None
+
 
 # Endpoint to handle POST requests with GameDatas
 @app.post("/send/")

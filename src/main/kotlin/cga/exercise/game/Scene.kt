@@ -127,9 +127,8 @@ class Scene(private val window: GameWindow) {
     data class GameData(
         val spaceshipPosition: List<Float>,
         val spaceshipRotation: Vector3f,
-        val closestAsteroid: Vector3f,
-        //val reward: Float,
-        //val time: Float
+        val closestAsteroid: Vector3f
+
     )
     var action= 6
     var gameDataset = mutableListOf<GameData>()
@@ -137,16 +136,14 @@ class Scene(private val window: GameWindow) {
     fun collectData(
         spaceshipPos: Vector3f1,
         spaceshipRotation: Vector3f,
-        closestAsteroid: Vector3f,
-        //reward: Float,
-        //time: Float
+        closestAsteroid: Vector3f
+
     ) {                             //rotation spaceship
         val data = GameData(
             spaceshipPosition = listOf(spaceshipPos.x, spaceshipPos.y, spaceshipPos.z),
             spaceshipRotation = spaceship.getRotation(),
-            closestAsteroid = cAsteroid,
-            //reward = reward,
-            //time = time
+            closestAsteroid = cAsteroid
+
         )
         gameDataset.add(data)
 
@@ -493,7 +490,7 @@ class Scene(private val window: GameWindow) {
             3 -> spaceship.rotate(0.0f, -0.01f, 0.0f)    //D
             4 -> shoot=true                                           //P
         }
-        //skybox.translate(spaceship.getPosition())
+
         collisionCheckTimer += dt
         checkCollisionSpaceship()
         if (b_menu ==true){
