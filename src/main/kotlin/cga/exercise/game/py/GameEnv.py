@@ -1,3 +1,7 @@
+import asyncio
+import datetime
+from typing import List
+import tensorflow as tf
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -6,13 +10,12 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3 import DQN
 from stable_baselines3.common.logger import configure
 from pydantic import BaseModel
-
 import httpx
-
 
 timesteps = 5000
 apiURL = 'http://127.0.0.1:8000/'
-
+log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+writer = tf.summary.create_file_writer(log_dir)
 
     #FORWARD = 0
     #LEFT= 1
@@ -20,44 +23,34 @@ apiURL = 'http://127.0.0.1:8000/'
     #RIGHT = 3
     #SHOOT = 4
 
-
-
+class gameData: {
+    'spaceship_position': np.zeros(3, dtype=np.float32),
+    'spaceship_rotation': np.zeros(1, dtype=np.float32),
+    'nextAsteroid_position': np.zeros(3, dtype=np.float32)
+}
+client=httpx.Client(http2=True)
 def sendAction(action):
     action = int(action)
     #print(f'Typ... : {type(pckAction)}')
     try:
-        with httpx.Client() as client:
-            response = client.post(apiURL + 'sendAction', json=action)
+
+            response = client.post(f"{apiURL}sendAction", json=action)
             response.raise_for_status()
-            print('sended action...')
+            data=response.json()
+            gameData = {
+                'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
+                'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
+                'nextAsteroid_position':np.array(data.get('closestAsteroid',[0,0,0]), dtype=np.float32),
+            }
+            print('sended action...',action,"recived:",gameData)
+            return gameData
     except Exception as e:
         print(f'Error sending action: {action} - {e}')
-
-
-def fetchGameData():
-    try:
-        with httpx.Client() as client:
-            response = client.get(apiURL + 'get')
-            response.raise_for_status()
-            data = response.json()
-
-
-
-            gameData = {
-                'spaceship_position':np.array(data['spaceshipPosition'], dtype=np.float32),
-                'spaceship_rotation':np.array(data['spaceshipRotation'], dtype=np.float32),
-                'nextAsteroid_position':np.array(data['closestAsteroid'], dtype=np.float32),
-            }
-            return gameData
-        
-    except Exception as e:
-        print(f'Error: {e}')
         return {
-                'spaceship_position': np.zeros(3, dtype=np.float32),
-                'spaceship_rotation': np.zeros(1, dtype=np.float32),
-                'nextAsteroid_position': np.zeros(3, dtype=np.float32)
-            }
-
+            'spaceship_position': np.zeros(3, dtype=np.float32),
+            'spaceship_rotation': np.zeros(1, dtype=np.float32),
+            'nextAsteroid_position': np.zeros(3, dtype=np.float32)
+        }
 
 class GameEnv(gym.Env):
     """Custom Environment that follows gym interface"""
@@ -96,18 +89,29 @@ class GameEnv(gym.Env):
 
         # inital state
         # get data from fastapi
-        self.state = fetchGameData()
+        self.state = sendAction(6)
         self.done = False 
 
     def step(self, action):
-        reward = 0
-        sendAction(action)
 
+        gameData = sendAction(action)
+        print('spaceshiprotation:' ,gameData['spaceship_rotation'])
+        if(gameData['spaceship_rotation']<=0.5 and gameData['spaceship_rotation']>=-0.5):
+            reward=5
+            print("reward+",reward)
+        else:
+            reward=-5
+            print("reward",reward)
 
+        global_step = getattr(self, "step_count", 0)
+        with writer.as_default():
+            tf.summary.scalar("reward", reward, step=global_step)
 
+        # Schrittzähler aktualisieren
+        self.step_count = global_step + 1
         # update state
-        self.state = fetchGameData()
-
+        self.state = gameData
+        #print(self.state)
 
 
         truncated = False
@@ -118,8 +122,9 @@ class GameEnv(gym.Env):
         return self.state, reward, self.done, truncated, info
     
     def reset(self, seed=None, options=None):
+        self.step_count = 0
         self.done = False
-        self.state = fetchGameData()
+        self.state = sendAction(6)
         info = {}
         return self.state, info
     
@@ -139,6 +144,5 @@ model = DQN("MultiInputPolicy", env, verbose=1)
 model.learn(total_timesteps=timesteps)
 #tensorboard
 new_logger = configure("logs", ["stdout", "tensorboard"])
-
 model.set_logger(new_logger)
 

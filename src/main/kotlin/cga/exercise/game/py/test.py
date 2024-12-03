@@ -1,6 +1,7 @@
 # Install FastAPI and Uvicorn if you haven't
 # pip install fastapi uvicorn
 #Ausführen in py ordner     python -m uvicorn test:app --reload
+import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict
@@ -22,14 +23,18 @@ class GameData(BaseModel):
     spaceshipRotation: Vector3f1
     closestAsteroid: Vector3f1
 
+global starttime
+starttime=time.time()
+global starttime2
+starttime2=time.time()
+
 class Action(BaseModel):
     action: int =6
 
-savedData: GameData = None
-
+savedData: GameData =None
 
 # Endpoint to handle POST requests with GameDatas
-@app.post("/send/")
+@app.post("/send/",response_model=Action)
 async def receive_game_data(data: GameData):
     response_data = GameData(
         spaceshipPosition=[pos for pos in data.spaceshipPosition],
@@ -40,41 +45,27 @@ async def receive_game_data(data: GameData):
     )
     global savedData
     savedData = response_data
-    return response_data
+    global starttime
+    print(f"time send : {time.time()-starttime:.3f}sec")
+    starttime=time.time()
+    return Action
 
-
-@app.get("/get")
-async def send_game_data():
-    if savedData is None:
-        return {'Error: No data received'}
-
-    print({
-            "spaceshipPosition": savedData.spaceshipPosition,
-            "spaceshipRotation": savedData.spaceshipRotation.y,
-            "closestAsteroid": [
-                savedData.closestAsteroid.x,
-                savedData.closestAsteroid.y,
-                savedData.closestAsteroid.z
-            ]
-        })
-
-    return {
-            "spaceshipPosition": savedData.spaceshipPosition,
-            "spaceshipRotation": savedData.spaceshipRotation.y,
-            "closestAsteroid": [
-                savedData.closestAsteroid.x,
-                savedData.closestAsteroid.y,
-                savedData.closestAsteroid.z
-            ]
-        }
 
 @app.post("/sendAction")
 async def receive_action(data: int = Body(...)):
-    print(f"Received action: {data}")
+    #print(f"Received action: {data}")
     Action.action=data
-    return data
-
-
-@app.get("/getAction",response_model=Action)
-async def getAction():
-    return Action
+    global starttime2
+    print(f"time action : {time.time()-starttime2:.3f}sec")
+    starttime2=time.time()
+    if savedData is None:
+        return {'Error: No data received'}
+    return {
+        "spaceshipPosition": savedData.spaceshipPosition,
+        "spaceshipRotation": savedData.spaceshipRotation.y,
+        "closestAsteroid": [
+            savedData.closestAsteroid.x,
+            savedData.closestAsteroid.y,
+            savedData.closestAsteroid.z
+        ]
+    }

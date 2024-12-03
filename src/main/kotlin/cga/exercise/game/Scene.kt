@@ -58,7 +58,7 @@ class Scene(private val window: GameWindow) {
     var rayl= 0
     var inputkey= ""
     var cAsteroid=Vector3f(1000f,1000f,1000f)
-
+    var sendcd =0
     var speed = -0.1f
     var shoot =false
     var cammode =0
@@ -159,35 +159,33 @@ class Scene(private val window: GameWindow) {
         // Create HttpClient with JSON support
         val client = HttpClient(CIO) {
             install(ContentNegotiation) {
-                json(Json { prettyPrint = true; isLenient = true; ignoreUnknownKeys=true })
+                json(Json { prettyPrint = true; isLenient = true; ignoreUnknownKeys = true })
             }
         }
-
         // Prepare the data to send
         val dataToSend = gameDataset.last()
-
-        try {
-            // Sending a POST request to the FastAPI server
-            val postResponse: GameData = client.post("http://127.0.0.1:8000/send/") {
-                contentType(ContentType.Application.Json)
-                setBody(dataToSend)  // Send GameData as request body
-            }.body()  // Extract the response body as GameData
-
-            //get Action
-            val postResponse2:Action = client.get("http://127.0.0.1:8000/getAction") {
-                contentType(ContentType.Application.Json)
-
-            }.body()
-            println("POST Response: ${postResponse2}")
-            action=postResponse2.action
+        if (sendcd >=10) {
+            try {
+                // Sending a POST request to the FastAPI server
+                val postResponse: Action = client.post("http://127.0.0.1:8000/send/") {
+                    contentType(ContentType.Application.Json)
+                    setBody(dataToSend)  // Send GameData as request body
+                }.body() // Extract the response body as GameData
 
 
-        } catch (e: Exception) {
-            println("Error sending request: ${e.localizedMessage}")
-        } finally {
-            // Close the client after use
-            client.close()
+                println("POST Response: ${postResponse}")
+                action = postResponse.action
+
+
+            } catch (e: Exception) {
+                println("Error sending request: ${e.localizedMessage}")
+            } finally {
+                // Close the client after use
+                client.close()
+            }
+            sendcd=0
         }
+        sendcd++
 
     }
     init {
@@ -429,7 +427,7 @@ class Scene(private val window: GameWindow) {
                 vmaxa*=1.1f
                 vmaxa2*=1.01f
             }
-        if(score.toInt()%100==0){
+        /*if(score.toInt()%100==0){
 
 
             astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
@@ -442,7 +440,7 @@ class Scene(private val window: GameWindow) {
             rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(0f,0.1f),Random().nextFloat(-100f,100f)))
             asteroidlist2.add(rendertemp)
 
-        }
+        }*/
         }
 
         if(spaceship.getWorldPosition().x>=1700f||spaceship.getWorldPosition().y>=1700f||spaceship.getWorldPosition().z>=1700f||spaceship.getWorldPosition().x<=-1700f||spaceship.getWorldPosition().y<=-1700f||spaceship.getWorldPosition().z<=-1700f) {
