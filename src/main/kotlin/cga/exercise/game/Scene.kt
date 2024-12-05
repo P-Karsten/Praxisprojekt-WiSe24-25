@@ -164,7 +164,7 @@ class Scene(private val window: GameWindow) {
         }
         // Prepare the data to send
         val dataToSend = gameDataset.last()
-        if (sendcd >=10) {
+        if (sendcd >=2) {
             try {
                 // Sending a POST request to the FastAPI server
                 val postResponse: Action = client.post("http://127.0.0.1:8000/send/") {
@@ -175,7 +175,7 @@ class Scene(private val window: GameWindow) {
 
                 println("POST Response: ${postResponse}")
                 action = postResponse.action
-
+                println(dataToSend.spaceshipRotation.y)
 
             } catch (e: Exception) {
                 println("Error sending request: ${e.localizedMessage}")
@@ -419,7 +419,7 @@ class Scene(private val window: GameWindow) {
                 asteroidlist2[i].render(staticShader,Vector3f1(0.2f,0.15f,0.15f))
             }
 
-            println(score)
+
             score+=1f
             if(score.toInt()%100==0)
             {

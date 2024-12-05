@@ -17,17 +17,20 @@ apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 writer = tf.summary.create_file_writer(log_dir)
 
-    #FORWARD = 0
+    #RIGHT = 0
     #LEFT= 1
     #BACK = 2
-    #RIGHT = 3
+    #FORWARD = 3
     #SHOOT = 4
+
+
 
 class gameData: {
     'spaceship_position': np.zeros(3, dtype=np.float32),
     'spaceship_rotation': np.zeros(1, dtype=np.float32),
     'nextAsteroid_position': np.zeros(3, dtype=np.float32)
 }
+
 client=httpx.Client(http2=True)
 def sendAction(action):
     action = int(action)
@@ -58,7 +61,7 @@ class GameEnv(gym.Env):
 
     def __init__(self):
         super(GameEnv, self).__init__()
-        self.reward=0
+        self.reward=0.0
         pos_LOW = np.float32(-1800)
         pos_HIGH = np.float32(1800)
         rot_LOW = np.float32(-np.pi)
@@ -89,18 +92,26 @@ class GameEnv(gym.Env):
 
         # inital state
         # get data from fastapi
-        self.state = sendAction(6)
+        self.state = sendAction(2)
         self.done = False
     def step(self, action):
 
         gameData = sendAction(action)
-        print('spaceshiprotation:' ,gameData['spaceship_rotation'])
-        if(gameData['spaceship_rotation']<=0.5 and gameData['spaceship_rotation']>=-0.5):
-            self.reward+=5
-            print("reward+",self.reward)
+        rotation = gameData['spaceship_rotation']
+        rotation=rotation.item()
+        print('spaceship_rotation:' ,rotation)
+        if(rotation<=1 and rotation>=-1):
+            if(rotation==0.0 or abs(rotation)<=0.1):
+                self.reward+=15
+            else:
+                self.reward+=(abs(rotation)**-1.1)
+                print("reward+",self.reward)
         else:
-            self.reward-=5
-            print("reward",self.reward)
+            if(abs(rotation)>=3):
+                self.reward-=15
+            else:
+                self.reward-=(abs(rotation)**2.3)
+                print("reward",self.reward)
 
         global_step = getattr(self, "step_count", 0)
         with writer.as_default():
