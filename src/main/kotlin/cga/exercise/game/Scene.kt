@@ -482,12 +482,14 @@ class Scene(private val window: GameWindow) {
     fun update(dt: Float, t: Float) {
         //RL-Controls
         when(action) {
-            0 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
+            0 -> spaceship.rotate(0.0f, -0.01f, 0.0f)    //D
             1 -> spaceship.rotate(0.0f, 0.01f, 0.00f)     //A
             2 -> spaceship.translate(Vector3f1(0f, 0f, 0.2f))  //S
-            3 -> spaceship.rotate(0.0f, -0.01f, 0.0f)    //D
+            3 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
             4 -> shoot=true                                           //P
         }
+
+        spaceship.translate(Vector3f1(0f, 0f, speed))
 
         collisionCheckTimer += dt
         checkCollisionSpaceship()

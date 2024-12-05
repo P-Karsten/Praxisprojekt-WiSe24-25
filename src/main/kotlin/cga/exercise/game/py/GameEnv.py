@@ -58,14 +58,14 @@ class GameEnv(gym.Env):
 
     def __init__(self):
         super(GameEnv, self).__init__()
-
+        self.reward=0
         pos_LOW = np.float32(-1800)
         pos_HIGH = np.float32(1800)
         rot_LOW = np.float32(-np.pi)
         rot_HIGH = np.float32(np.pi)
 
         # W, A, S, D, P (shift)
-        self.action_space = spaces.Discrete(5)
+        self.action_space = spaces.Discrete(2)
 
         # spaceship pos, next asteroid pos, spaceship rotation
         self.observation_space = spaces.Dict({
@@ -90,22 +90,21 @@ class GameEnv(gym.Env):
         # inital state
         # get data from fastapi
         self.state = sendAction(6)
-        self.done = False 
-
+        self.done = False
     def step(self, action):
 
         gameData = sendAction(action)
         print('spaceshiprotation:' ,gameData['spaceship_rotation'])
         if(gameData['spaceship_rotation']<=0.5 and gameData['spaceship_rotation']>=-0.5):
-            reward=5
-            print("reward+",reward)
+            self.reward+=5
+            print("reward+",self.reward)
         else:
-            reward=-5
-            print("reward",reward)
+            self.reward-=5
+            print("reward",self.reward)
 
         global_step = getattr(self, "step_count", 0)
         with writer.as_default():
-            tf.summary.scalar("reward", reward, step=global_step)
+            tf.summary.scalar("reward", self.reward, step=global_step)
 
         # Schrittzähler aktualisieren
         self.step_count = global_step + 1
@@ -119,7 +118,7 @@ class GameEnv(gym.Env):
 
 
 
-        return self.state, reward, self.done, truncated, info
+        return self.state, self.reward, self.done, truncated, info
     
     def reset(self, seed=None, options=None):
         self.step_count = 0
@@ -143,6 +142,5 @@ check_env(env)  # Check for compliance
 model = DQN("MultiInputPolicy", env, verbose=1)
 model.learn(total_timesteps=timesteps)
 #tensorboard
-new_logger = configure("logs", ["stdout", "tensorboard"])
-model.set_logger(new_logger)
+#tensorboard --logdir=logs/game_rewards/
 
