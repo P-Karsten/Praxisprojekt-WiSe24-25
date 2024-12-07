@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import math
 from typing import List
 import tensorflow as tf
 import gymnasium as gym
@@ -15,20 +16,19 @@ import httpx
 
 learningRate = 0.0001
 #learningRate = 0.00035
-timesteps = 30000
+timesteps = 50000
 #eplorationRate = 0.45
-#max_steps = 500
 max_steps = 500
 
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 writer = tf.summary.create_file_writer(log_dir)
 
-    #RIGHT = 0
-    #LEFT= 1
-    #BACK = 2
-    #FORWARD = 3
-    #SHOOT = 4
+#RIGHT = 0
+#LEFT= 1
+#BACK = 2
+#FORWARD = 3
+#SHOOT = 4
 
 #callback logging / console outputs after 10 episodes
 
@@ -45,16 +45,16 @@ def sendAction(action):
     #print(f'Typ... : {type(pckAction)}')
     try:
 
-            response = client.post(f"{apiURL}sendAction", json=action)
-            response.raise_for_status()
-            data=response.json()
-            gameData = {
-                'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
-                'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
-                'nextAsteroid_position':np.array(data.get('closestAsteroid',[0,0,0]), dtype=np.float32),
-            }
-            #print('sended action...',action,"recived:",gameData)
-            return gameData
+        response = client.post(f"{apiURL}sendAction", json=action)
+        response.raise_for_status()
+        data=response.json()
+        gameData = {
+            'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
+            'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
+            'nextAsteroid_position':np.array(data.get('closestAsteroid',[0,0,0]), dtype=np.float32),
+        }
+        #print('sended action...',action,"recived:",gameData)
+        return gameData
     except Exception as e:
         #print(f'Error sending action: {action} - {e}')
         return {
@@ -75,6 +75,7 @@ class GameEnv(gym.Env):
         rot_LOW = np.float32(-np.pi)
         rot_HIGH = np.float32(np.pi)
 
+        self.model = None
         # W, A, S, D, P (shift)
         self.action_space = spaces.Discrete(2)
 
@@ -103,72 +104,63 @@ class GameEnv(gym.Env):
         self.state = sendAction(2)
         self.done = False
 
+    def setModel(self, model):
+        self.model = model
+
     def step(self, action):
-        
+
         gameData = sendAction(action)
         rotation = gameData['spaceship_rotation'].item()
 
         # Reward
-        absRotation = abs(rotation)
-        self.reward = -absRotation**2
+        #absRotation = abs(rotation)
+        #self.reward = -absRotation**2
 
-        #running rewards from active model
-        if absRotation < 0.1:
-            self.reward += 10
 
-        if absRotation < 0.5:
-            self.reward += 0.1
+        if(rotation<=1 and rotation>=-1):
+            if(rotation==0.0 or abs(rotation)<=0.1):
+                self.reward+=15
+            else:
+                self.reward+=(abs(rotation)**-1.1)
+        else:
+            if(abs(rotation)>=3):
+                self.reward-=15
+            else:
+                self.reward-=(abs(rotation)**2.3)
 
-        if absRotation < 1.0:
-            self.reward += 0.005
-
-        if absRotation > np.pi / 2:
-            self.reward -= 2
-
-        """ #test
-        if absRotation < 0.02:
-            self.reward += 1.25
-
-        if absRotation < 0.1:
-            self.reward += 0.25
-
-        if absRotation < 0.5:
-            self.reward += 0.15
-
-        if absRotation < 1.0:
-            self.reward += 0.0085
-
-        if absRotation > np.pi / 2:
-            self.reward -= 1
-        """
 
 
         global_step = getattr(self, "step_count", 0)
         with writer.as_default():
             tf.summary.scalar("reward", self.reward, step=global_step)
 
+
+            if self.model:
+                tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
+
         self.step_count = global_step + 1
 
 
-        if self.step_count >= max_steps:
+        if  math.fmod(self.step_count, 5000) == 0:
+            with writer.as_default():
+                tf.summary.scalar("reward_ep", self.reward/5000,step=global_step)
             self.done = True
 
         self.state = gameData
-        #self.done = False 
+        #self.done = False
         truncated = False
         info = {}
 
         return self.state, self.reward, self.done, truncated, info
 
-    
+
     def reset(self, seed=None, options=None):
-        self.step_count = 0
         self.done = False
         self.reward = 0
         self.state = sendAction(6)
         info = {}
         return self.state, info
-    
+
     def render(self, mode="human"):
         ...
 
@@ -176,10 +168,23 @@ class GameEnv(gym.Env):
         ...
 
 
+
+
+
 env = GameEnv()
 check_env(env)  # Check for compliance
+model2 = DQN.load("dqn_spaceship2", env=env)
 
-tensorboardLogDir = "./logs/game_rewards/"
+#model2 = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=1.0, exploration_final_eps=0.775, exploration_fraction=0.7, learning_rate=learningRate, tensorboard_log="./logs/game_rewards/")
+
+env.setModel(model2)
+model2.exploration_initial_eps = 0.6
+model2.exploration_final_eps = 0.3
+model2.exploration_fraction = 0.6
+model2.learn(total_timesteps=20000, log_interval=10)
+model2.save("dqn_spaceship2")
+
+#tensorboardLogDir = "./logs/game_rewards/"
 
 #logCallback = CustomLoggingCallback(log_dir='./logs', log_freq=10)
 
@@ -190,10 +195,11 @@ tensorboardLogDir = "./logs/game_rewards/"
 #model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=1.0, exploration_final_eps=0.3, exploration_fraction=0.4, learning_rate=learningRate)
 
 #model training with different new exploration values
-model = DQN.load("dqn_spaceship", env=env)
-model.set_logger(configure(tensorboardLogDir))
-model.learning_rate = learningRate
- #2nd/3rd run
+#model = DQN.load("dqn_spaceship", env=env)
+#model.set_logger(configure(tensorboardLogDir))
+#model.tensorboard_log("./logs/game_rewards/")
+#model.learning_rate = learningRate
+#2nd/3rd run
 """
 model.exploration_initial_eps = 0.375
 model.exploration_final_eps = 0.275
@@ -201,7 +207,7 @@ model.exploration_fraction = 0.5
 """
 
 #constant train run ideal (0.1 - 0.05 later)
-model.exploration_initial_eps = 0.15
+#model.exploration_initial_eps = 0.15
 #model.exploration_final_eps = 0.15
 #model.exploration_fraction = 0.6
 
@@ -212,9 +218,9 @@ model.exploration_initial_eps = 0.1
 model.exploration_final_eps = 0.05
 model.exploration_fraction = 0.3
 """
-model.learn(total_timesteps=timesteps, log_interval=5)
+#model.learn(total_timesteps=timesteps, log_interval=5)
 
-model.save("dqn_spaceship")
+#model.save("dqn_spaceship")
 
 
 #tensorboard
