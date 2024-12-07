@@ -1,0 +1,45 @@
+from stable_baselines3.common.callbacks import BaseCallback
+import tensorflow as tf
+import numpy as np
+import datetime
+
+class CustomLoggingCallback(BaseCallback):
+    def __init__(self, log_dir="./logs/", log_freq=10, verbose=1):
+        super(CustomLoggingCallback, self).__init__()
+        self.verbose = verbose
+        self.log_dir = log_dir
+        self.log_freq = log_freq  # Wie oft sollen die Daten geloggt werden (alle X Episoden)
+        self.writer = tf.summary.create_file_writer(log_dir + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+        self.episode_count = 0
+
+    def _on_step(self) -> bool:
+        # Belohnung und Lernrate loggen
+        reward = self.locals.get('rewards', None)
+        if reward is not None:
+            global_step = self.num_timesteps
+            with self.writer.as_default():
+                tf.summary.scalar("reward", np.mean(reward), step=global_step)
+
+        # Lernrate loggen
+        lr = self.model.lr_schedule(self.num_timesteps)
+        with self.writer.as_default():
+            tf.summary.scalar("learning_rate", lr, step=self.num_timesteps)
+
+        # Episode Anzahl
+        episode_count = self.num_timesteps // self.model.env.spec.max_episode_steps
+        with self.writer.as_default():
+            tf.summary.scalar("episode_count", episode_count, step=self.num_timesteps)
+
+        # Alle X Episoden eine Ausgabe in der Konsole
+        self.episode_count += 1
+        if self.episode_count % self.log_freq == 0:
+            if self.verbose > 0:
+                print(f"Step {self.num_timesteps}: Episode {self.episode_count}, Reward = {np.mean(reward)}, Learning Rate = {lr}, Episode Count = {episode_count}")
+
+        return True
+
+    def _on_training_end(self):
+        # Optional: Log wenn das Training beendet wird
+        print("Training abgeschlossen")
+        with self.writer.as_default():
+            tf.summary.scalar("final_reward", np.mean(self.locals.get('rewards', [0])), step=self.num_timesteps)
