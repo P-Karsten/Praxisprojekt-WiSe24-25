@@ -222,14 +222,14 @@ def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, exp
     model.learn(total_timesteps=totalSteps, log_interval=5)
     model.save(modelName)
 
-def modelTrainAutomatic(env: GameEnv, modelName: str, exp: float, totalSteps: int, cycles: int):
+def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
     x = 0
     while x <= cycles:
         model = DQN.load(modelName, env=env)
         env.setModel(model)
-        model.exploration_initial_eps = exp
-        model.exploration_fraction=0.6
-        model.exploration_final_eps=0.2
+        model.exploration_initial_eps = expInit
+        model.exploration_final_eps = expFinal
+        model.exploration_fraction = expFrac
         model.buffer_size = 50000
         model.learn(total_timesteps=totalSteps, log_interval=5)
         model.save(modelName)
@@ -242,5 +242,5 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, exp: float, totalSteps: in
 
 
 #Training:
-#modelInit(env,"dqn_spaceship_3actionsv2",1,0.5,0.7,200000,0.0003)
-modelTrainAutomatic(env, 'dqn_spaceship_3actionsv2', 0.6, 50000, 5)
+modelInit(env,"dqn_spaceship_3actionsv2",0.7,0.2,0.6,200000,0.0003)
+#modelTrainAutomatic(env, 'dqn_spaceship_3actionsv2', 0.6, 50000, 5)
