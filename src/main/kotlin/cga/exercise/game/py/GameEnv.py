@@ -236,7 +236,7 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         print('Model saved...')
 
         x += 1
-        print(x + 'cycle start...')
+        print("cycle start...",x)
 
 
 
