@@ -486,7 +486,8 @@ class Scene(private val window: GameWindow) {
             1 -> spaceship.rotate(0.0f, 0.01f, 0.00f)     //A
             2 -> spaceship.translate(Vector3f1(0f, 0f, 0.2f))  //S
             3 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
-            4 -> shoot=true                                           //P
+            4 -> shoot=true                                             //P
+            10 -> setSpaceshipPositionToStart()                    //Game reset
         }
 
         spaceship.translate(Vector3f1(0f, 0f, speed))
@@ -642,6 +643,7 @@ class Scene(private val window: GameWindow) {
 
         b_menu = true
     }
+
     private fun checkCollisionMenu(){
             //saveDataset(gameDataset,"testdata1")
             val shotPosition = ray.getWorldPosition()
@@ -723,18 +725,19 @@ class Scene(private val window: GameWindow) {
     fun onKey(key: Int, scancode: Int, action: Int, mode: Int) {}
 
     fun onMouseMove(xpos: Double, ypos: Double) {
-        val x_speed = (xpos - window.windowWidth/ 2.0).toFloat() * 0.002f
+        /*val x_speed = (xpos - window.windowWidth/ 2.0).toFloat() * 0.002f
 
         val y_speed = (ypos - window.windowHeight/ 2.0).toFloat() * 0.002f
 
         glfwSetCursorPos(window.m_window, window.windowWidth / 2.0, window.windowHeight/ 2.0)
+
         if(cammode==0){
         spaceship.rotate(-y_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f, 0f)
         spaceship.rotate(0f, -x_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f)
 
         }
         else
-            camera.rotateAroundPoint(0f, -x_speed, 0f, renderable.getWorldPosition())
+            camera.rotateAroundPoint(0f, -x_speed, 0f, renderable.getWorldPosition())*/
 
     }
     fun onMouseButton(button: Int, action: Int, mode: Int) {
