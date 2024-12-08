@@ -58,7 +58,7 @@ async def receive_action(data: int = Body(...)):
     global starttime2
     print(f"time action : {time.time()-starttime2:.3f}sec")
     starttime2=time.time()
-    time.sleep(0.010)
+    #time.sleep(0.010)
     if savedData is None:
         return {'Error: No data received'}
     return {

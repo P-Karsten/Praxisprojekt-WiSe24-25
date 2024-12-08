@@ -164,7 +164,7 @@ class Scene(private val window: GameWindow) {
         }
         // Prepare the data to send
         val dataToSend = gameDataset.last()
-        if (sendcd >=2) {
+        if (sendcd >=0) {
             try {
                 // Sending a POST request to the FastAPI server
                 val postResponse: Action = client.post("http://127.0.0.1:8000/send/") {
@@ -484,7 +484,7 @@ class Scene(private val window: GameWindow) {
         when(action) {
             0 -> spaceship.rotate(0.0f, -0.01f, 0.0f)    //D
             1 -> spaceship.rotate(0.0f, 0.01f, 0.00f)     //A
-            2 -> spaceship.translate(Vector3f1(0f, 0f, 0.2f))  //S
+            2 -> spaceship.translate(Vector3f1(0f, 0f, 0.0f))  //S  z=0.2f
             3 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
             4 -> shoot=true                                             //P
             10 -> setSpaceshipPositionToStart()                    //Game reset
@@ -686,10 +686,11 @@ class Scene(private val window: GameWindow) {
         ray.parent = spaceship
         pointLight4.parent = ray
         pointLight.parent = spaceship
-
+        print("reset......................................")
         score=0f
         vmaxa=0.01f
         vmaxa2=0.0001f
+        spaceship.rotate(0.0f,Random().nextFloat(-3.1415f,3.1415f),0.0f)
 
     }
 
