@@ -213,7 +213,7 @@ class Scene(private val window: GameWindow) {
 
         val spec = Texture2D("assets/textures/ground_diff.png", true)
         val diff = Texture2D("assets/textures/ground_diff.png", true)
-        var skybox_emit = Texture2D("assets/textures/skybox.png", true)
+        var skybox_emit = Texture2D("assets/textures/menu_font2.png", true)
         var raytex = Texture2D("assets/textures/ground_diff.png", true)
         var fontMat = Texture2D("assets/textures/menu_font.png", true)
 
@@ -489,8 +489,8 @@ class Scene(private val window: GameWindow) {
             4 -> shoot=true                                             //P
             10 -> setSpaceshipPositionToStart()                    //Game reset
         }
-
-        spaceship.translate(Vector3f1(0f, 0f, speed))
+        action=6
+        //spaceship.translate(Vector3f1(0f, 0f, speed))
 
         collisionCheckTimer += dt
         checkCollisionSpaceship()

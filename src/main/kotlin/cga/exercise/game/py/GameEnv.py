@@ -127,12 +127,13 @@ class GameEnv(gym.Env):
             if(rotation==0.0 or abs(rotation)<=0.1):
                 self.reward+=15
             else:
-                self.reward+=(abs(rotation)**-1.1)
+                self.reward+=(abs(rotation)**-1.1+2)
         else:
             if(abs(rotation)>=3):
                 self.reward-=15
             else:
-                self.reward-=(abs(rotation)**2.3)
+                self.reward-=(abs(rotation)**2)
+
 
 
         global_step = getattr(self, "step_count", 0)
@@ -188,12 +189,15 @@ check_env(env)
 model.exploration_initial_eps = 0.375
 model.exploration_final_eps = 0.275
 model.exploration_fraction = 0.5
+"""
 
 #constant train run ideal (0.1 - 0.05 later)
-model.exploration_initial_eps = 0.15
-model.exploration_final_eps = 0.15
+#model.exploration_initial_eps = 0.15
+#model.exploration_final_eps = 0.15
 #model.exploration_fraction = 0.6
 
+
+"""
 #final
 model.exploration_initial_eps = 0.1
 model.exploration_final_eps = 0.05
