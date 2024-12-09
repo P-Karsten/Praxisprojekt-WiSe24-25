@@ -40,9 +40,9 @@ writer = tf.summary.create_file_writer(log_dir)
 
 
 class gameData: {
-    'spaceship_position': np.zeros(3, dtype=np.float32),
+    #'spaceship_position': np.zeros(3, dtype=np.float32),
     'spaceship_rotation': np.zeros(1, dtype=np.float32),
-    'nextAsteroid_position': np.zeros(3, dtype=np.float32)
+    #'nextAsteroid_position': np.zeros(3, dtype=np.float32)
 }
 
 client=httpx.Client(http2=True)
@@ -55,18 +55,18 @@ def sendAction(action):
         response.raise_for_status()
         data=response.json()
         gameData = {
-            'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
+            #'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
             'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
-            'nextAsteroid_position':np.array(data.get('closestAsteroid',[0,0,0]), dtype=np.float32),
+            #'nextAsteroid_position':np.array(data.get('closestAsteroid',[0,0,0]), dtype=np.float32),
         }
         #print('sended action...',action,"recived:",gameData)
         return gameData
     except Exception as e:
         #print(f'Error sending action: {action} - {e}')
         return {
-            'spaceship_position': np.zeros(3, dtype=np.float32),
+            #'spaceship_position': np.zeros(3, dtype=np.float32),
             'spaceship_rotation': np.zeros(1, dtype=np.float32),
-            'nextAsteroid_position': np.zeros(3, dtype=np.float32)
+            #'nextAsteroid_position': np.zeros(3, dtype=np.float32)
         }
 
 class GameEnv(gym.Env):
@@ -88,21 +88,21 @@ class GameEnv(gym.Env):
 
         # spaceship pos, next asteroid pos, spaceship rotation
         self.observation_space = spaces.Dict({
-            'spaceship_position': spaces.Box(
-                low=np.array([pos_LOW, pos_LOW, pos_LOW]),
-                high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
-                dtype=np.float32
-            ),
+            #'spaceship_position': spaces.Box(
+            #    low=np.array([pos_LOW, pos_LOW, pos_LOW]),
+            #    high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
+            #    dtype=np.float32
+            #),
             'spaceship_rotation': spaces.Box(
                 low=np.array([rot_LOW]),
                 high=np.array([rot_HIGH]),
                 dtype=np.float32
             ),
-            'nextAsteroid_position': spaces.Box(
-                low=np.array([pos_LOW, pos_LOW,pos_LOW]),
-                high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
-                dtype=np.float32
-            )
+            #'nextAsteroid_position': spaces.Box(
+            #    low=np.array([pos_LOW, pos_LOW,pos_LOW]),
+            #    high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
+            #    dtype=np.float32
+            #)
             # alive
         })
 
@@ -167,10 +167,8 @@ class GameEnv(gym.Env):
         if self.done:
             sendAction(10)
             asyncio.sleep(2)
-            print('Game reset...')
         self.done = False
         self.reward = 0
-        print('Episode finished...')
         self.state = sendAction(6)
         info = {}
         return self.state, info
@@ -219,6 +217,9 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
     model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr, tensorboard_log="./logs/game_rewards/")
     env.setModel(model)
+    model.buffer_size = 50000
+    model.batch_size=64
+    model.gamma = 0.99
     model.learn(total_timesteps=totalSteps, log_interval=5)
     model.save(modelName)
 
@@ -242,5 +243,5 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
 
 
 #Training:
-modelInit(env,"dqn_spaceship_3actionsv2",0.7,0.2,0.6,200000,0.0003)
+modelInit(env,"dqn_spaceship_hopefullyFixed",0.8,0.1,0.5,500000,0.0002, tensorboard_log="./logs/game_rewards/")
 #modelTrainAutomatic(env, 'dqn_spaceship_3actionsv2', 0.6, 50000, 5)
