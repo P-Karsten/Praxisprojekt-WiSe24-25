@@ -146,16 +146,17 @@ class GameEnv(gym.Env):
             self.a1+=1
         if(self.currentaction==2):
             self.a2+=1
-
         global_step = getattr(self, "step_count", 0)
+        self.step_count = global_step + 1
         with writer.as_default():
             tf.summary.scalar("_reward", self.reward_ep, step=global_step)
 
 
-            if self.model:
+            if self.model and math.fmod(self.step_count,500)==0:
                 tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
                 tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
-        self.step_count = global_step + 1
+                tf.summary.scalar("gamma", self.model.gamma , step=global_step)
+
 
 
         if  math.fmod(self.step_count, max_stepsEpisode) == 0:

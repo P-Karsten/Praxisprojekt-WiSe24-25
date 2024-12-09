@@ -410,7 +410,7 @@ class Scene(private val window: GameWindow) {
 
                 asteroidlist[i].render(staticShader,Vector3f1(0.2f,0.2f,0.2f))
             }
-            for(i in 0..asteroidlist2.lastIndex-1)
+            for(i in 0..asteroidlist2.lastIndex)
             {
 
                 asteroidlist2[i].translate(spaceship.getWorldPosition().sub(asteroidlist2[i].getWorldPosition(),Vector3f1()).mul(Vector3f1(vmaxa2,vmaxa2,vmaxa2)))
@@ -690,6 +690,18 @@ class Scene(private val window: GameWindow) {
         vmaxa2=0.0001f
         spaceship.rotate(0.0f,Random().nextFloat(-3.141f,3.141f),0.0f)
         print("reset........................................................................${spaceship.getRotation()}")
+        astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
+        cleanup()
+        astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
+        var rendertemp = Renderable(mutableListOf(astmesh))
+
+
+        var ascale=Random().nextFloat(6f,10f)
+
+        rendertemp.scale(Vector3f1(ascale,ascale,ascale))
+        rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(0f,0.1f),Random().nextFloat(-100f,100f)))
+        asteroidlist2.add(rendertemp)
+
     }
 
     private fun checkCollisionAsteroid() {
