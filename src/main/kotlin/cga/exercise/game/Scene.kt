@@ -164,7 +164,7 @@ class Scene(private val window: GameWindow) {
         }
         // Prepare the data to send
         val dataToSend = gameDataset.last()
-        if (sendcd >=0) {
+        if (sendcd >=2) {
             try {
                 // Sending a POST request to the FastAPI server
                 val postResponse: Action = client.post("http://127.0.0.1:8000/send/") {
@@ -173,9 +173,9 @@ class Scene(private val window: GameWindow) {
                 }.body() // Extract the response body as GameData
 
 
-                println("POST Response: ${postResponse}")
+                //println("POST Response: ${postResponse}")
                 action = postResponse.action
-                println(dataToSend.spaceshipRotation.y)
+                //println(dataToSend.spaceshipRotation.y)
 
             } catch (e: Exception) {
                 println("Error sending request: ${e.localizedMessage}")
@@ -350,7 +350,6 @@ class Scene(private val window: GameWindow) {
     fun render(dt: Float, t: Float)= runBlocking {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         staticShader.use()
-
         staticShader.setUniform("gammaValue", desiredGammaValue)
 
         camera.updateViewMatrix()
@@ -423,7 +422,7 @@ class Scene(private val window: GameWindow) {
             score+=1f
             if(score.toInt()%100==0)
             {
-                println(vmaxa)
+                //println(vmaxa)
                 vmaxa*=1.1f
                 vmaxa2*=1.01f
             }
@@ -491,7 +490,7 @@ class Scene(private val window: GameWindow) {
         }
         action=6
         //spaceship.translate(Vector3f1(0f, 0f, speed))
-
+        //skybox.translate(Vector3f1(0.0f,0.0f,0.1f))
         collisionCheckTimer += dt
         checkCollisionSpaceship()
         if (b_menu ==true){
@@ -686,12 +685,11 @@ class Scene(private val window: GameWindow) {
         ray.parent = spaceship
         pointLight4.parent = ray
         pointLight.parent = spaceship
-        print("reset......................................")
         score=0f
         vmaxa=0.01f
         vmaxa2=0.0001f
-        spaceship.rotate(0.0f,Random().nextFloat(-3.1415f,3.1415f),0.0f)
-
+        spaceship.rotate(0.0f,Random().nextFloat(-3.141f,3.141f),0.0f)
+        print("reset........................................................................${spaceship.getRotation()}")
     }
 
     private fun checkCollisionAsteroid() {
