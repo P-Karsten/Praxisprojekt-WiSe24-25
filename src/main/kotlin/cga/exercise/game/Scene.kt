@@ -164,7 +164,7 @@ class Scene(private val window: GameWindow) {
         }
         // Prepare the data to send
         val dataToSend = gameDataset.last()
-        if (sendcd >=2) {
+        if (sendcd >=0) {
             try {
                 // Sending a POST request to the FastAPI server
                 val postResponse: Action = client.post("http://127.0.0.1:8000/send/") {

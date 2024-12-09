@@ -108,7 +108,7 @@ class GameEnv(gym.Env):
 
         # inital state
         # get data from fastapi
-        self.state = sendAction(6)
+        self.state = sendAction(10)
         self.done = False
 
     def setModel(self, model):
@@ -205,7 +205,7 @@ def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, exp
 
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
     x = 0
-    while x <= cycles:
+    while x < cycles:
         model = DQN.load(modelName, env=env)
         env.setModel(model)
         model.exploration_initial_eps = expInit
@@ -223,5 +223,5 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
 
 
 #Training:
-modelInit(env,"dqn_spaceship_hopefullyFixed",0.8,0.1,0.5,500000,0.0002, tensorboard_log="./logs/game_rewards/")
-#modelTrainAutomatic(env, 'dqn_spaceship_3actionsv2', 0.6, 50000, 5)
+modelInit(env,"dqn_spaceship_hopefullyFixed",0.8,0.1,0.5,500000,0.001)
+#modelTrainAutomatic(env, 'dqn_spaceship_3actionsv2', 0.3,0.1,0.5, 50000, 5)

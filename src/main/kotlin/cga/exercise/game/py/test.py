@@ -1,14 +1,14 @@
 # Install FastAPI and Uvicorn if you haven't
 # pip install fastapi uvicorn
 #Ausführen in py ordner     python -m uvicorn test:app --reload
+import asyncio
 import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Dict
-import numpy as np
-import enum as Enum
+
 from fastapi import Body
-from starlette.responses import JSONResponse
+
 
 app = FastAPI()
 
@@ -27,15 +27,27 @@ global starttime
 starttime=time.time()
 global starttime2
 starttime2=time.time()
-
+ready_to_send = asyncio.Event()
+ready_to_action = asyncio.Event()
 class Action(BaseModel):
     action: int =6
 
 savedData: GameData =None
 
-# Endpoint to handle POST requests with GameDatas
-@app.post("/send/",response_model=Action)
+
+@app.on_event("startup")
+async def startup_event():
+    ready_to_action.set()
+
+
+latest_action = 6
+
+@app.post("/send/", response_model=Action)
 async def receive_game_data(data: GameData):
+    global savedData, starttime, latest_action
+
+    await ready_to_action.wait()
+
     response_data = GameData(
         spaceshipPosition=[pos for pos in data.spaceshipPosition],
         spaceshipRotation=data.spaceshipRotation,
@@ -43,24 +55,35 @@ async def receive_game_data(data: GameData):
         #reward=data.reward,
         #time=data.time
     )
-    global savedData
+
     savedData = response_data
-    global starttime
-    print(f"time send : {time.time()-starttime:.3f}sec")
-    starttime=time.time()
-    return Action
+    print(f"time send : {time.time() - starttime:.3f}sec")
+    starttime = time.time()
+
+    ready_to_send.set()
+    ready_to_action.clear()
+
+    # Return the latest action
+    return Action(action=latest_action)
+
 
 
 @app.post("/sendAction")
 async def receive_action(data: int = Body(...)):
-    #print(f"Received action: {data}")
-    Action.action=data
-    global starttime2
-    print(f"time action : {time.time()-starttime2:.3f}sec")
-    starttime2=time.time()
-    time.sleep(0.010)
+    global starttime2, latest_action
+
+    await ready_to_send.wait()
+
+    latest_action = data  # Update the global variable
+    print(f"time action : {time.time() - starttime2:.3f}sec")
+    starttime2 = time.time()
+
+    ready_to_action.set()
+    ready_to_send.clear()
+
     if savedData is None:
-        return {'Error: No data received'}
+        return {'Error': 'No data received'}
+
     return {
         "spaceshipPosition": savedData.spaceshipPosition,
         "spaceshipRotation": savedData.spaceshipRotation.y,
