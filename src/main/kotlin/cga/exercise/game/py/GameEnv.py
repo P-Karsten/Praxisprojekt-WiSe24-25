@@ -14,7 +14,7 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import BaseCallback
 from pydantic import BaseModel
 import httpx
-
+from tensorflow.python.eager.context import async_wait
 
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
@@ -25,11 +25,10 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 5000
-
+logname='dqn_spaceship_hopefullyFixed'
 apiURL = 'http://127.0.0.1:8000/'
-log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
-
 #RIGHT = 0
 #LEFT= 1
 #BACK = 2
@@ -81,7 +80,10 @@ class GameEnv(gym.Env):
         pos_HIGH = np.float32(1800)
         rot_LOW = np.float32(-np.pi)
         rot_HIGH = np.float32(np.pi)
-
+        self.currentaction=6
+        self.a0=0
+        self.a1=0
+        self.a2=0
         self.model = None
         # W, A, S, D, P (shift)
         self.action_space = spaces.Discrete(3)
@@ -116,7 +118,8 @@ class GameEnv(gym.Env):
 
     def step(self, action):
 
-        gameData = sendAction(action)
+        self.currentaction =action
+        gameData = sendAction(self.currentaction)
         rotation = gameData['spaceship_rotation'].item()
         self.reward_ep+=self.reward
         self.reward=0
@@ -137,21 +140,33 @@ class GameEnv(gym.Env):
                 self.reward-=(abs(rotation)**2)
 
 
+        if(self.currentaction==0):
+            self.a0+=1
+        if(self.currentaction==1):
+            self.a1+=1
+        if(self.currentaction==2):
+            self.a2+=1
 
         global_step = getattr(self, "step_count", 0)
         with writer.as_default():
-            tf.summary.scalar("reward", self.reward_ep, step=global_step)
+            tf.summary.scalar("_reward", self.reward_ep, step=global_step)
 
 
             if self.model:
                 tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
-
+                tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
         self.step_count = global_step + 1
 
 
         if  math.fmod(self.step_count, max_stepsEpisode) == 0:
             with writer.as_default():
                 tf.summary.scalar("reward_ep", self.reward_ep/max_stepsEpisode, step=global_step)
+                tf.summary.scalar("action_0", self.a0, step=global_step)
+                tf.summary.scalar("action_1", self.a1, step=global_step)
+                tf.summary.scalar("action_2", self.a2, step=global_step)
+                self.a0=0
+                self.a1=0
+                self.a2=0
             self.reward_ep=0
             self.done = True
 
@@ -195,7 +210,7 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
     model.save(modelName)
 
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
-    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr, tensorboard_log="./logs/game_rewards/")
+    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr)
     env.setModel(model)
     model.buffer_size = 50000
     model.batch_size=64
@@ -212,7 +227,7 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         model.exploration_final_eps = expFinal
         model.exploration_fraction = expFrac
         model.buffer_size = 50000
-        model.learn(total_timesteps=totalSteps, log_interval=5)
+        model.learn(total_timesteps=totalSteps, log_interval=1)
         model.save(modelName)
         print('Model saved...')
 
@@ -223,5 +238,6 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
 
 
 #Training:
-modelInit(env,"dqn_spaceship_hopefullyFixed",0.8,0.1,0.5,500000,0.001)
-#modelTrainAutomatic(env, 'dqn_spaceship_3actionsv2', 0.3,0.1,0.5, 50000, 5)
+#modelInit(env,"dqn_spaceship_hopefullyFixed",0.8,0.1,0.5,500000,0.001)
+
+modelTrainAutomatic(env, 'dqn_spaceship_hopefullyFixed', 0.3,0.1,0.5, 50000, 5)

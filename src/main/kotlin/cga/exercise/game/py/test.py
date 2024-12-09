@@ -1,4 +1,3 @@
-# Install FastAPI and Uvicorn if you haven't
 # pip install fastapi uvicorn
 #Ausführen in py ordner     python -m uvicorn test:app --reload
 import asyncio
@@ -11,7 +10,6 @@ from fastapi import Body
 
 
 app = FastAPI()
-
 
 class Vector3f1(BaseModel):
     x: float
@@ -52,8 +50,6 @@ async def receive_game_data(data: GameData):
         spaceshipPosition=[pos for pos in data.spaceshipPosition],
         spaceshipRotation=data.spaceshipRotation,
         closestAsteroid=data.closestAsteroid,
-        #reward=data.reward,
-        #time=data.time
     )
 
     savedData = response_data
