@@ -185,26 +185,6 @@ class GameEnv(gym.Env):
 env = GameEnv()
 check_env(env)
 
-#Working exploration values
-"""
-model.exploration_initial_eps = 0.375
-model.exploration_final_eps = 0.275
-model.exploration_fraction = 0.5
-"""
-
-#constant train run ideal (0.1 - 0.05 later)
-#model.exploration_initial_eps = 0.15
-#model.exploration_final_eps = 0.15
-#model.exploration_fraction = 0.6
-
-
-"""
-#final
-model.exploration_initial_eps = 0.1
-model.exploration_final_eps = 0.05
-model.exploration_fraction = 0.3
-"""
-
 
 #Training functions
 def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
