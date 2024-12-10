@@ -25,7 +25,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 5000
-logname='dqn_spaceship_hopefullyFixed'
+logname='dqn_spaceship_asteroid_track'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -36,12 +36,26 @@ writer = tf.summary.create_file_writer(log_dir)
 #SHOOT = 4
 
 #callback logging / console outputs after 10 episodes
+def normalize_angle(angle, range_start=-np.pi, range_end=np.pi):
+    range_width = range_end - range_start
+    return range_start + ((angle - range_start) % range_width)
+def angular_distance(yaw1, yaw2):
+    diff = yaw1 - yaw2
+    return normalize_angle(diff)
+def yaw_distance(yaw1, yaw2):
+    """Calculate the shortest distance between two yaw angles."""
+    # Normalize to [-pi, pi)
+    yaw1 = normalize_angle(yaw1)
+    yaw2 = normalize_angle(yaw2)
 
+    # Compute the difference and wrap around
+    diff = yaw1 - yaw2
+    return normalize_angle(diff)
 
 class gameData: {
     #'spaceship_position': np.zeros(3, dtype=np.float32),
     'spaceship_rotation': np.zeros(1, dtype=np.float32),
-    #'nextAsteroid_position': np.zeros(3, dtype=np.float32)
+    'yaw': np.zeros(1, dtype=np.float32)
 }
 
 client=httpx.Client(http2=True)
@@ -56,7 +70,7 @@ def sendAction(action):
         gameData = {
             #'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
             'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
-            #'nextAsteroid_position':np.array(data.get('closestAsteroid',[0,0,0]), dtype=np.float32),
+            'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
         }
         #print('sended action...',action,"recived:",gameData)
         return gameData
@@ -65,7 +79,7 @@ def sendAction(action):
         return {
             #'spaceship_position': np.zeros(3, dtype=np.float32),
             'spaceship_rotation': np.zeros(1, dtype=np.float32),
-            #'nextAsteroid_position': np.zeros(3, dtype=np.float32)
+            'yaw':np.zeros(1, dtype=np.float32),
         }
 
 class GameEnv(gym.Env):
@@ -100,11 +114,11 @@ class GameEnv(gym.Env):
                 high=np.array([rot_HIGH]),
                 dtype=np.float32
             ),
-            #'nextAsteroid_position': spaces.Box(
-            #    low=np.array([pos_LOW, pos_LOW,pos_LOW]),
-            #    high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
-            #    dtype=np.float32
-            #)
+            'yaw': spaces.Box(
+                low=np.array([pos_LOW]),
+                high=np.array([pos_HIGH]),
+                dtype=np.float32
+            )
             # alive
         })
 
@@ -126,18 +140,22 @@ class GameEnv(gym.Env):
         # Reward
         #absRotation = abs(rotation)
         #self.reward = -absRotation**2
-
-
-        if(rotation<=1 and rotation>=-1):
-            if(rotation==0.0 or abs(rotation)<=0.1):
+        #print(math.radians(gameData['yaw'].item()))
+        #print(rotation)
+        #print((gameData['yaw'].item()))
+        yawdistance = yaw_distance(gameData['yaw'].item(),rotation)
+        #yawdistance=math.radians(gameData['yaw'].item())-rotation
+        #print(yawdistance)
+        if(yawdistance<=1 and yawdistance>=-1):
+            if(yawdistance==0.0 or abs(yawdistance)<=0.1):
                 self.reward+=50
             else:
-                self.reward+=(abs(rotation)**-1.1+2)
+                self.reward+=(abs(yawdistance)**-1.1+2)
         else:
-            if(abs(rotation)>=3):
+            if(abs(yawdistance)>=3):
                 self.reward-=15
             else:
-                self.reward-=(abs(rotation)**2)
+                self.reward-=(abs(yawdistance)**2)
 
 
         if(self.currentaction==0):
@@ -239,6 +257,6 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
 
 
 #Training:
-#modelInit(env,"dqn_spaceship_hopefullyFixed",0.8,0.1,0.5,500000,0.001)
+#modelInit(env,"dqn_spaceship_asteroid_track",0.8,0.1,0.5,500000,0.001)
 
-modelTrainAutomatic(env, 'dqn_spaceship_hopefullyFixed', 0.3,0.1,0.5, 50000, 5)
+modelTrainAutomatic(env, 'dqn_spaceship_asteroid_track', 0.3,0.1,0.5, 50000, 5)

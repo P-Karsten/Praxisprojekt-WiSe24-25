@@ -19,7 +19,7 @@ class Vector3f1(BaseModel):
 class GameData(BaseModel):
     spaceshipPosition: List[float]
     spaceshipRotation: Vector3f1
-    closestAsteroid: Vector3f1
+    yaw : float
 
 global starttime
 starttime=time.time()
@@ -49,10 +49,10 @@ async def receive_game_data(data: GameData):
     response_data = GameData(
         spaceshipPosition=[pos for pos in data.spaceshipPosition],
         spaceshipRotation=data.spaceshipRotation,
-        closestAsteroid=data.closestAsteroid,
+        yaw=data.yaw,
     )
-
     savedData = response_data
+    print(savedData.yaw)
     print(f"time send : {time.time() - starttime:.3f}sec")
     starttime = time.time()
 
@@ -83,9 +83,5 @@ async def receive_action(data: int = Body(...)):
     return {
         "spaceshipPosition": savedData.spaceshipPosition,
         "spaceshipRotation": savedData.spaceshipRotation.y,
-        "closestAsteroid": [
-            savedData.closestAsteroid.x,
-            savedData.closestAsteroid.y,
-            savedData.closestAsteroid.z
-        ]
+        "yaw": savedData.yaw
     }
