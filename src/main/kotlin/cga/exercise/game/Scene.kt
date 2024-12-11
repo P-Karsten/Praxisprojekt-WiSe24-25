@@ -709,8 +709,6 @@ class Scene(private val window: GameWindow) {
         rendertemp.scale(Vector3f1(ascale,ascale,ascale))
         rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(0f,0.001f),Random().nextFloat(-100f,100f)))
         asteroidlist2.add(rendertemp)
-        //pointLight2.parent = asteroidlist2[0]
-        //camera.parent = asteroidlist2[0]
 
     }
 
@@ -729,7 +727,6 @@ class Scene(private val window: GameWindow) {
                 asteroid.cleanup()
                 score+=500f
             }
-            setSpaceshipPositionToStart()
         }
         while (iterator2.hasNext()) {
             val asteroid = iterator2.next()

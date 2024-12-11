@@ -253,6 +253,16 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         x += 1
         print("cycle start...",x)
 
+def modelPredict(env: GameEnv, modelName: str):
+    model = DQN.load(modelName, env=env)
+    state, _ = env.reset()
+
+    done = False
+    while not done:
+        action, _ = model.predict(state)
+
+        state, reward, done, truncated, info = env.step(action)
+
 
 
 
