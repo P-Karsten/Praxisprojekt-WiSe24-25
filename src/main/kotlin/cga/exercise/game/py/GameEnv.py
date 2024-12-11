@@ -253,10 +253,20 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         x += 1
         print("cycle start...",x)
 
+def modelPredict(env: GameEnv, modelName: str):
+    model = DQN.load(modelName, env=env)
+    state, _ = env.reset()
+
+    done = False
+    while not done:
+        action, _ = model.predict(state)
+        
+        state, reward, done, truncated, info = env.step(action)
+
 
 
 
 #Training:
 #modelInit(env,"dqn_spaceship_asteroid_track",0.8,0.1,0.5,500000,0.001)
-
-modelTrainAutomatic(env, 'dqn_spaceship_asteroid_track', 0.3,0.1,0.5, 50000, 5)
+modelTrainAutomatic(env, 'dqn_spaceship_asteroid_track', 0.3,0.1,0.5, 50000, 7)
+#modelPredict(env, 'dqn_spaceship_asteroid_track')

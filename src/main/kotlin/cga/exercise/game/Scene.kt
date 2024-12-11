@@ -216,6 +216,7 @@ class Scene(private val window: GameWindow) {
         val spec = Texture2D("assets/textures/ground_diff.png", true)
         val diff = Texture2D("assets/textures/ground_diff.png", true)
         var skybox_emit = Texture2D("assets/textures/menu_font2.png", true)
+        //var skybox_emit = Texture2D("assets/textures/white.png", true)
         var raytex = Texture2D("assets/textures/ground_diff.png", true)
         var fontMat = Texture2D("assets/textures/menu_font.png", true)
 
