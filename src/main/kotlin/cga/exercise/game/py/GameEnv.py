@@ -257,6 +257,6 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
 
 
 #Training:
-#modelInit(env,"dqn_spaceship_asteroid_track",0.8,0.1,0.5,500000,0.001)
+#modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
 
-modelTrainAutomatic(env, 'dqn_spaceship_asteroid_track', 0.3,0.1,0.5, 50000, 5)
+modelTrainAutomatic(env, logname, 0.3,0.1,0.5, 50000, 5)

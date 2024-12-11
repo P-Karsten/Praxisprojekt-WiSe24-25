@@ -53,7 +53,7 @@ class Scene(private val window: GameWindow) {
     var b_menu = false
     var astmesh: Mesh
     var vmaxa=0.01f
-    var vmaxa2=0.00000001f
+    var vmaxa2=0.0001f
     var shoot2=false
     var score =0f
     var pause =true
@@ -216,7 +216,7 @@ class Scene(private val window: GameWindow) {
         val spec = Texture2D("assets/textures/ground_diff.png", true)
         val diff = Texture2D("assets/textures/ground_diff.png", true)
         var skybox_emit = Texture2D("assets/textures/menu_font2.png", true)
-        var raytex = Texture2D("assets/textures/ground_diff.png", true)
+        var raytex = Texture2D("assets/textures/raytex.png", true)
         var fontMat = Texture2D("assets/textures/menu_font.png", true)
 
 
@@ -227,7 +227,7 @@ class Scene(private val window: GameWindow) {
 
         val rayMaterial = Material(
 
-            diff,
+            raytex,
             raytex,
             raytex,
             600.0f,
@@ -489,11 +489,11 @@ class Scene(private val window: GameWindow) {
     fun update(dt: Float, t: Float) {
         //RL-Controls
         when(action) {
-            0 -> spaceship.rotate(0.0f, -0.01f, 0.0f)    //D
-            1 -> spaceship.rotate(0.0f, 0.01f, 0.00f)     //A
-            2 -> spaceship.translate(Vector3f1(0f, 0f, 0.0f))  //S  z=0.2f
+            0 -> spaceship.rotate(0.0f, -0.01f, 0.0f) //D
+            1 -> spaceship.rotate(0.0f, 0.01f, 0.00f) //A
+            4 -> spaceship.translate(Vector3f1(0f, 0f, 0.0f))  //S  z=0.2f
             3 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
-            4 -> shoot=true                                             //P
+            2 -> shoot=true                                             //P
             10 -> setSpaceshipPositionToStart()                    //Game reset
         }
         action=6
@@ -695,7 +695,7 @@ class Scene(private val window: GameWindow) {
         pointLight.parent = spaceship
         score=0f
         vmaxa=0.01f
-        vmaxa2=0.0000001f
+        vmaxa2=0.0001f
         spaceship.rotate(0.0f,Random().nextFloat(-3.141f,3.141f),0.0f)
         print("reset........................................................................${spaceship.getRotation()}")
         astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
@@ -709,6 +709,8 @@ class Scene(private val window: GameWindow) {
         rendertemp.scale(Vector3f1(ascale,ascale,ascale))
         rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(0f,0.001f),Random().nextFloat(-100f,100f)))
         asteroidlist2.add(rendertemp)
+        //pointLight2.parent = asteroidlist2[0]
+        //camera.parent = asteroidlist2[0]
 
     }
 
@@ -727,6 +729,7 @@ class Scene(private val window: GameWindow) {
                 asteroid.cleanup()
                 score+=500f
             }
+            setSpaceshipPositionToStart()
         }
         while (iterator2.hasNext()) {
             val asteroid = iterator2.next()
@@ -744,19 +747,19 @@ class Scene(private val window: GameWindow) {
     fun onKey(key: Int, scancode: Int, action: Int, mode: Int) {}
 
     fun onMouseMove(xpos: Double, ypos: Double) {
-        /*val x_speed = (xpos - window.windowWidth/ 2.0).toFloat() * 0.002f
+        val x_speed = (xpos - window.windowWidth/ 2.0).toFloat() * 0.002f
 
         val y_speed = (ypos - window.windowHeight/ 2.0).toFloat() * 0.002f
 
         glfwSetCursorPos(window.m_window, window.windowWidth / 2.0, window.windowHeight/ 2.0)
 
         if(cammode==0){
-        spaceship.rotate(-y_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f, 0f)
-        spaceship.rotate(0f, -x_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f)
+        //spaceship.rotate(-y_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f, 0f)
+        //spaceship.rotate(0f, -x_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f)
 
         }
         else
-            camera.rotateAroundPoint(0f, -x_speed, 0f, renderable.getWorldPosition())*/
+            camera.rotateAroundPoint(0f, -x_speed, 0f, renderable.getWorldPosition())
 
     }
     fun onMouseButton(button: Int, action: Int, mode: Int) {
