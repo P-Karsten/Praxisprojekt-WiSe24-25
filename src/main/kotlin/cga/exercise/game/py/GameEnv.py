@@ -24,7 +24,7 @@ learningRate = 0.0001
 timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
-max_stepsEpisode = 5000
+max_stepsEpisode = 10000
 logname='dqn_spaceship_asteroid_shot-v1'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
@@ -106,6 +106,7 @@ class GameEnv(gym.Env):
         self.a1=0
         self.a2=0
         self.model = None
+        self.hitCounter = 0
         # W, A, S, D, P (shift)
         self.action_space = spaces.Discrete(3)
 
@@ -159,22 +160,23 @@ class GameEnv(gym.Env):
         #print(yawdistance
 
         if (alive == 0):
-            self.reward -= 150
+            self.reward -= 10000
 
         if (hit == 1):
-            self.reward+=100
+            self.reward+=750
+            self.hitCounter+=1
             print('Hit asterioid... reward + 100 !!!!!!')
-        else:
-            self.reward-=1
+        if (hit == 0):
+            self.reward-=0.25
 
         if(yawdistance<=1 and yawdistance>=-1):
             if(yawdistance==0.0 or abs(yawdistance)<=0.1):
-                self.reward+=50
+                self.reward+=13
             else:
-                self.reward+=(abs(yawdistance)**-1.1+2)
+                self.reward+=(abs(yawdistance)**-1.1+1)
         else:
             if(abs(yawdistance)>=3):
-                self.reward-=15
+                self.reward-=4
             else:
                 self.reward-=(abs(yawdistance)**2)
 
@@ -198,7 +200,7 @@ class GameEnv(gym.Env):
 
 
 
-        if  math.fmod(self.step_count, max_stepsEpisode) == 0 or alive == 0:
+        if  (alive == 0 or self.hitCounter >= 5):
             with writer.as_default():
                 tf.summary.scalar("reward_ep", self.reward_ep/max_stepsEpisode, step=global_step)
                 tf.summary.scalar("action_0", self.a0, step=global_step)
@@ -222,6 +224,7 @@ class GameEnv(gym.Env):
         if self.done:
             sendAction(10)
             asyncio.sleep(2)
+        self.hitCounter = 0
         self.done = False
         self.reward = 0
         self.state = sendAction(6)

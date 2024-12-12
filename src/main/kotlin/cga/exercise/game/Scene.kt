@@ -53,7 +53,7 @@ class Scene(private val window: GameWindow) {
     var b_menu = false
     var astmesh: Mesh
     var vmaxa=0.01f
-    var vmaxa2=0.0001f
+    var vmaxa2=0.002f
     var shoot2=false
     var score =0f
     var pause =true
@@ -97,6 +97,7 @@ class Scene(private val window: GameWindow) {
         Vector2f(1.0f, 1.0f)
 
     )
+    var counter = 0
 
 
     val desiredGammaValue = 2.2f // Beispielwert für den gewünschten Gammawert
@@ -131,7 +132,9 @@ class Scene(private val window: GameWindow) {
         val spaceshipRotation: Vector3f,
         val yaw : Float,
         val hit: Boolean,
-        val alive: Boolean
+        val alive: Boolean,
+        val hitsCounter: Int,
+
 
     )
     var action= 6
@@ -142,7 +145,8 @@ class Scene(private val window: GameWindow) {
         spaceshipRotation: Vector3f,
         yaw : Float,
         hit: Boolean,
-        alive: Boolean
+        alive: Boolean,
+        hitsCounter: Int
 
     ) {                             //rotation spaceship
         val data = GameData(
@@ -150,7 +154,8 @@ class Scene(private val window: GameWindow) {
             spaceshipRotation = spaceship.getRotation(),
             yaw = yaw,
             hit = hit,
-            alive = alive
+            alive = alive,
+            hitsCounter = hitsCounter
         )
         gameDataset.add(data)
 
@@ -482,10 +487,14 @@ class Scene(private val window: GameWindow) {
         var hit = checkCollisionAsteroid()
         var alive = checkCollisionSpaceship()
 
+        if (hit) {
+            counter++
+        }
+
         //println(direction)
         //println("pitch"+pitch+"yaw"+yaw)
         //println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
-        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
 
 
@@ -692,6 +701,7 @@ class Scene(private val window: GameWindow) {
     
     private fun setSpaceshipPositionToStart() {
 
+        counter = 0
         spaceship.cleanup()
         spaceship= ModelLoader.loadModel("assets/starsparrow/StarSparrow01.obj", 0f, Math.toRadians(180f), 0f)!!
         camera.parent = spaceship
