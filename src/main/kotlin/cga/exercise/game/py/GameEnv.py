@@ -161,6 +161,7 @@ class GameEnv(gym.Env):
 
         if (alive == 0):
             self.reward -= 15000
+            print('After dead...', self.reward)
             print('dead...')
 
         if (self.hitCounter >= 5):
@@ -268,7 +269,7 @@ def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, exp
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
     x = 0
     while x < cycles:
-        model = DQN.load(modelName, env=env)
+        model = DQN.load(modelName, env=env, device='cpu')
         env.setModel(model)
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
@@ -294,6 +295,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-modelInit(env,logname,0.8,0.1,0.5,500000,0.00025)
+#modelInit(env,logname,0.8,0.1,0.5,500000,0.00025)
 
-#modelTrainAutomatic(env, logname, 0.3,0.1,0.5, 50000, 5)
+modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 100000, 5)
