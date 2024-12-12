@@ -20,6 +20,8 @@ class GameData(BaseModel):
     spaceshipPosition: List[float]
     spaceshipRotation: Vector3f1
     yaw : float
+    hit: bool
+    alive: bool
 
 global starttime
 starttime=time.time()
@@ -50,6 +52,8 @@ async def receive_game_data(data: GameData):
         spaceshipPosition=[pos for pos in data.spaceshipPosition],
         spaceshipRotation=data.spaceshipRotation,
         yaw=data.yaw,
+        hit=data.hit,
+        alive=data.alive
     )
     savedData = response_data
     print(savedData.yaw)
@@ -83,5 +87,7 @@ async def receive_action(data: int = Body(...)):
     return {
         "spaceshipPosition": savedData.spaceshipPosition,
         "spaceshipRotation": savedData.spaceshipRotation.y,
-        "yaw": savedData.yaw
+        "yaw": savedData.yaw,
+        "hit": savedData.hit,
+        "alive": savedData.alive
     }

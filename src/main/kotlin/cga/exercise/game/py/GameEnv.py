@@ -25,7 +25,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 5000
-logname='dqn_spaceship_asteroid_track'
+logname='dqn_spaceship_asteroid_shot-v1'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -55,7 +55,9 @@ def yaw_distance(yaw1, yaw2):
 class gameData: {
     #'spaceship_position': np.zeros(3, dtype=np.float32),
     'spaceship_rotation': np.zeros(1, dtype=np.float32),
-    'yaw': np.zeros(1, dtype=np.float32)
+    'yaw': np.zeros(1, dtype=np.float32),
+    'hit': False,
+    'alive': True
 }
 
 client=httpx.Client(http2=True)
@@ -71,6 +73,9 @@ def sendAction(action):
             #'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
             'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
             'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
+            'hit': 1 if data.get('hit', False) else 0,
+            'alive': 1 if data.get('alive', False) else 0
+    
         }
         #print('sended action...',action,"recived:",gameData)
         return gameData
@@ -80,6 +85,8 @@ def sendAction(action):
             #'spaceship_position': np.zeros(3, dtype=np.float32),
             'spaceship_rotation': np.zeros(1, dtype=np.float32),
             'yaw':np.zeros(1, dtype=np.float32),
+            'hit': 0,
+            'alive': 1,
         }
 
 class GameEnv(gym.Env):
@@ -118,8 +125,10 @@ class GameEnv(gym.Env):
                 low=np.array([pos_LOW]),
                 high=np.array([pos_HIGH]),
                 dtype=np.float32
-            )
-            # alive
+            ),
+            #0 false 1 true
+            'hit': spaces.Discrete(2),
+            'alive': spaces.Discrete(2)
         })
 
         # inital state
@@ -135,6 +144,8 @@ class GameEnv(gym.Env):
         self.currentaction =action
         gameData = sendAction(self.currentaction)
         rotation = gameData['spaceship_rotation'].item()
+        hit = gameData['hit']
+        alive = gameData['alive']
         self.reward_ep+=self.reward
         self.reward=0
         # Reward
@@ -145,7 +156,17 @@ class GameEnv(gym.Env):
         #print((gameData['yaw'].item()))
         yawdistance = yaw_distance(gameData['yaw'].item(),rotation)
         #yawdistance=math.radians(gameData['yaw'].item())-rotation
-        #print(yawdistance)
+        #print(yawdistance
+
+        if (alive == 0):
+            self.reward -= 150
+
+        if (hit == 1):
+            self.reward+=100
+            print('Hit asterioid... reward + 100 !!!!!!')
+        else:
+            self.reward-=1
+
         if(yawdistance<=1 and yawdistance>=-1):
             if(yawdistance==0.0 or abs(yawdistance)<=0.1):
                 self.reward+=50
@@ -177,7 +198,7 @@ class GameEnv(gym.Env):
 
 
 
-        if  math.fmod(self.step_count, max_stepsEpisode) == 0:
+        if  math.fmod(self.step_count, max_stepsEpisode) == 0 or alive == 0:
             with writer.as_default():
                 tf.summary.scalar("reward_ep", self.reward_ep/max_stepsEpisode, step=global_step)
                 tf.summary.scalar("action_0", self.a0, step=global_step)
@@ -253,14 +274,12 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         x += 1
         print("cycle start...",x)
 
-def modelPredict(env: GameEnv, modelName: str):
+def modelPredict(env: GameEnv, modelName: str, episodes: int):
     model = DQN.load(modelName, env=env)
     state, _ = env.reset()
-
     done = False
     while not done:
         action, _ = model.predict(state)
-
         state, reward, done, truncated, info = env.step(action)
 
 
@@ -268,5 +287,6 @@ def modelPredict(env: GameEnv, modelName: str):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
+modelInit(env,logname,0.8,0.1,0.5,500000,0.00025)
 
-modelTrainAutomatic(env, logname, 0.3,0.1,0.5, 50000, 5)
+#modelTrainAutomatic(env, logname, 0.3,0.1,0.5, 50000, 5)

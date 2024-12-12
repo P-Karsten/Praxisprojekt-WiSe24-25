@@ -129,7 +129,9 @@ class Scene(private val window: GameWindow) {
     data class GameData(
         val spaceshipPosition: List<Float>,
         val spaceshipRotation: Vector3f,
-        val yaw : Float
+        val yaw : Float,
+        val hit: Boolean,
+        val alive: Boolean
 
     )
     var action= 6
@@ -138,14 +140,17 @@ class Scene(private val window: GameWindow) {
     fun collectData(
         spaceshipPos: Vector3f1,
         spaceshipRotation: Vector3f,
-        yaw : Float
+        yaw : Float,
+        hit: Boolean,
+        alive: Boolean
 
     ) {                             //rotation spaceship
         val data = GameData(
             spaceshipPosition = listOf(spaceshipPos.x, spaceshipPos.y, spaceshipPos.z),
             spaceshipRotation = spaceship.getRotation(),
-            yaw = yaw
-
+            yaw = yaw,
+            hit = hit,
+            alive = alive
         )
         gameDataset.add(data)
 
@@ -175,7 +180,7 @@ class Scene(private val window: GameWindow) {
                 }.body() // Extract the response body as GameData
 
 
-                //println("POST Response: ${postResponse}")
+                //println("POST Response: ${postResponse}"
                 action = postResponse.action
                 //println(dataToSend.spaceshipRotation.y)
 
@@ -474,11 +479,13 @@ class Scene(private val window: GameWindow) {
         var direction=Vector3f(spaceship.getWorldPosition().x-cAsteroid.x , spaceship.getWorldPosition().y-cAsteroid.y ,spaceship.getWorldPosition().z-cAsteroid.z )
         var yaw = (atan2(direction.x,direction.z).toDouble())*-1
         var pitch = atan2(direction.y, sqrt(direction.x * direction.x + direction.z * direction.z)).toDouble()
+        var hit = checkCollisionAsteroid()
+        var alive = checkCollisionSpaceship()
 
         //println(direction)
         //println("pitch"+pitch+"yaw"+yaw)
         //println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
-        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat())//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
 
 
@@ -600,7 +607,7 @@ class Scene(private val window: GameWindow) {
         checkCollisionSpaceship()
     }
 
-    private fun checkCollisionSpaceship() {
+    private fun checkCollisionSpaceship(): Boolean {
         val spaceshipPosition = spaceship.getWorldPosition()
 
         val iterator = asteroidlist2.iterator()
@@ -614,7 +621,9 @@ class Scene(private val window: GameWindow) {
             if (distance < 12.0f) {
                 iterator.remove()
                 asteroid.cleanup()
-                GoTo_Menu()
+                //GoTo_Menu()
+                setSpaceshipPositionToStart()
+                return false
             }
 
             if(distance< spaceshipPosition.distance(Vector3f1(cAsteroid.x,cAsteroid.y,cAsteroid.z)))
@@ -624,6 +633,7 @@ class Scene(private val window: GameWindow) {
                 cAsteroid.z = asteroidPosition.z
             }
         }
+        return true
 
     }
 
@@ -712,7 +722,7 @@ class Scene(private val window: GameWindow) {
 
     }
 
-    private fun checkCollisionAsteroid() {
+    private fun checkCollisionAsteroid(): Boolean {
         val shotPosition = ray.getWorldPosition()
         val iterator = asteroidlist.iterator()
         val iterator2 = asteroidlist2.iterator()
@@ -726,6 +736,7 @@ class Scene(private val window: GameWindow) {
                 iterator.remove()
                 asteroid.cleanup()
                 score+=500f
+                return true
             }
         }
         while (iterator2.hasNext()) {
@@ -738,8 +749,10 @@ class Scene(private val window: GameWindow) {
                 iterator2.remove()
                 asteroid.cleanup()
                 score+=500f
+                return true
             }
         }
+        return false
     }
     fun onKey(key: Int, scancode: Int, action: Int, mode: Int) {}
 
