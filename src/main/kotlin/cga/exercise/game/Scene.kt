@@ -208,7 +208,7 @@ class Scene(private val window: GameWindow) {
 
         camera_fp = TronCamera()
         camera_fp.rotate(0f,0f,0f)
-        camera_fp.translate(Vector3f1(0.0f, 100f, -15f))
+        camera_fp.translate(Vector3f1(0.0f, 350f, -15f))
 
 
 

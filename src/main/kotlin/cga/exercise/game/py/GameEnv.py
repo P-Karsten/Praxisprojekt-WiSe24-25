@@ -19,13 +19,14 @@ from tensorflow.python.eager.context import async_wait
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
 
+maxScore = 12
 learningRate = 0.0001
 #learningRate = 0.00035
 timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot-test'
+logname='dqn_spaceship_asteroid_shot-v1'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -163,8 +164,8 @@ class GameEnv(gym.Env):
             self.reward -= 15000
             #print('dead...')
 
-        if (self.hitCounter >= 5):
-            self.reward += 25000
+        if (self.hitCounter >= maxScore):
+            self.reward += 50000
 
         if (hit == 1):
             self.reward+=750
@@ -204,7 +205,7 @@ class GameEnv(gym.Env):
 
 
 
-        if  (alive == 0 or self.hitCounter >= 5):
+        if  (alive == 0 or self.hitCounter >= maxScore):
             with writer.as_default():
                 tf.summary.scalar("reward_ep", self.reward_ep/max_stepsEpisode, step=global_step)
                 tf.summary.scalar("score", self.hitCounter, step=global_step)
@@ -298,4 +299,4 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
 #modelInit(env,logname,0.3,0.1,0.5,500000,0.00025)
 
-modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 100000, 5)
+modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 75000, 3)
