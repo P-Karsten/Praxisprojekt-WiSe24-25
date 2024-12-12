@@ -25,7 +25,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot-v1'
+logname='dqn_spaceship_asteroid_shot-test'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -161,8 +161,7 @@ class GameEnv(gym.Env):
 
         if (alive == 0):
             self.reward -= 15000
-            print('After dead...', self.reward)
-            print('dead...')
+            #print('dead...')
 
         if (self.hitCounter >= 5):
             self.reward += 25000
@@ -170,7 +169,7 @@ class GameEnv(gym.Env):
         if (hit == 1):
             self.reward+=750
             self.hitCounter+=1
-            print('Hit asterioid... reward + 100 !!!!!!')
+            #print('Hit asterioid...')
         if (hit == 0):
             self.reward-=0.25
 
@@ -208,9 +207,11 @@ class GameEnv(gym.Env):
         if  (alive == 0 or self.hitCounter >= 5):
             with writer.as_default():
                 tf.summary.scalar("reward_ep", self.reward_ep/max_stepsEpisode, step=global_step)
+                tf.summary.scalar("score", self.hitCounter, step=global_step)
                 tf.summary.scalar("action_0", self.a0, step=global_step)
                 tf.summary.scalar("action_1", self.a1, step=global_step)
                 tf.summary.scalar("action_2", self.a2, step=global_step)
+
                 self.a0=0
                 self.a1=0
                 self.a2=0
@@ -295,6 +296,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.8,0.1,0.5,500000,0.00025)
+#modelInit(env,logname,0.3,0.1,0.5,500000,0.00025)
 
 modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 100000, 5)
