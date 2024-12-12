@@ -296,6 +296,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-modelInit(env,logname,0.9,0.4,0.5,500000,0.00025)
+#modelInit(env,logname,0.9,0.4,0.5,500000,0.00025)
 
-#modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 75000, 3)
+modelTrainAutomatic(env, logname, 0.5,0.125,0.5, 500000, 1)

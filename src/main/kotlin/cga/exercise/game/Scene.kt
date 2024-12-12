@@ -789,6 +789,7 @@ class Scene(private val window: GameWindow) {
                 iterator2.remove()
                 asteroid.cleanup()
                 score+=500f
+                cAsteroid=Vector3f(10000f,10000f,10000f)
                 astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
                 var rendertemp = Renderable(mutableListOf(astmesh))
 
@@ -798,6 +799,7 @@ class Scene(private val window: GameWindow) {
                 rendertemp.scale(Vector3f1(ascale,ascale,ascale))
                 rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(0f,0.001f),Random().nextFloat(-100f,100f)))
                 asteroidlist2.add(rendertemp)
+
                 return true
             }
         }
@@ -844,11 +846,13 @@ class Scene(private val window: GameWindow) {
     fun cleanup() {
         for (asteroid in asteroidlist) {
             asteroid.cleanup()
+            cAsteroid=Vector3f(10000f,10000f,10000f)
         }
         for (asteroid in asteroidlist2) {
             asteroid.cleanup()
+            cAsteroid=Vector3f(10000f,10000f,10000f)
         }
-        cAsteroid=Vector3f(10000f,10000f,10000f)
+
     }
 
     private fun setSpaceshipPosition(position: Vector3f1) {
