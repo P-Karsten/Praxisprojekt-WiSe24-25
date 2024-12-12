@@ -583,10 +583,12 @@ class Scene(private val window: GameWindow) {
             if(cammode==0)
             {
                 cammode=1
+                camera.parent = camera_fp
 
             }
             else {
                 cammode = 0
+                camera.parent = spaceship
 
             }
         }
@@ -611,6 +613,21 @@ class Scene(private val window: GameWindow) {
 
             if(speed<=-0.1f)
                 speed+=0.01f
+        }
+
+        if (cammode ==1) {
+            if (window.getKeyState(GLFW_KEY_G) == true) {
+                camera_fp.translate(Vector3f1(0f,0.1f,0f))
+            }
+            if (window.getKeyState(GLFW_KEY_H) == true) {
+                camera_fp.translate(Vector3f1(0f,-0.1f,0f))
+            }
+            if (window.getKeyState(GLFW_KEY_LEFT) == true) {
+
+            }
+            if (window.getKeyState(GLFW_KEY_RIGHT) == true) {
+
+            }
         }
 
         checkCollisionSpaceship()
@@ -704,7 +721,7 @@ class Scene(private val window: GameWindow) {
         counter = 0
         spaceship.cleanup()
         spaceship= ModelLoader.loadModel("assets/starsparrow/StarSparrow01.obj", 0f, Math.toRadians(180f), 0f)!!
-        camera.parent = spaceship
+        //camera.parent = spaceship
         spaceship.scale(Vector3f1(0.8f, 0.8f, 0.8f))
         spaceship.translate(initialSpaceshipPosition)
         asteroidlist.clear()
@@ -746,6 +763,7 @@ class Scene(private val window: GameWindow) {
                 iterator.remove()
                 asteroid.cleanup()
                 score+=500f
+                setSpaceshipPositionToStart()
                 return true
             }
         }
@@ -759,6 +777,7 @@ class Scene(private val window: GameWindow) {
                 iterator2.remove()
                 asteroid.cleanup()
                 score+=500f
+                setSpaceshipPositionToStart()
                 return true
             }
         }
@@ -783,18 +802,20 @@ class Scene(private val window: GameWindow) {
 
     }
     fun onMouseButton(button: Int, action: Int, mode: Int) {
-        shoot=true
-        checkCollisionAsteroid()
+        //shoot=true
+        //checkCollisionAsteroid()
     }
 
     fun onMouseScroll(xoffset: Double, yoffset: Double) {
         if (yoffset < 0)
         {
-            camera.translate(Vector3f1(0.0f, 0.0f, 0.5f))
+            //camera.translate(Vector3f1(0.0f, 0.0f, 0.5f))
+            camera_fp.translate(Vector3f1(0.0f, 0.0f, 0.5f))
         }
         if (yoffset > 0)
         {
-            camera.translate(Vector3f1(0.0f, 0.0f, -0.5f))
+            //camera.translate(Vector3f1(0.0f, 0.0f, -0.5f))
+            camera_fp.translate(Vector3f1(0.0f, 0.0f, -0.5f))
         }
     }
 

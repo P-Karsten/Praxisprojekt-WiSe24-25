@@ -160,7 +160,11 @@ class GameEnv(gym.Env):
         #print(yawdistance
 
         if (alive == 0):
-            self.reward -= 10000
+            self.reward -= 15000
+            print('dead...')
+
+        if (self.hitCounter >= 5):
+            self.reward += 25000
 
         if (hit == 1):
             self.reward+=750
