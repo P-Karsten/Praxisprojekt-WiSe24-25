@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot-v1'
+logname='dqn_spaceship_asteroid_shot-v2'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -161,29 +161,31 @@ class GameEnv(gym.Env):
         #print(yawdistance
 
         if (alive == 0):
-            self.reward -= 15000
+            self.reward -= 10000
             #print('dead...')
 
         if (self.hitCounter >= maxScore):
-            self.reward += 50000
+            self.reward += maxScore**1.2*2000
 
         if (hit == 1):
-            self.reward+=750
             self.hitCounter+=1
+            self.reward+=100
             #print('Hit asterioid...')
-        if (hit == 0):
-            self.reward-=0.25
+        if(self.currentaction==2):
+            self.reward-=1
 
         if(yawdistance<=1 and yawdistance>=-1):
-            if(yawdistance==0.0 or abs(yawdistance)<=0.1):
-                self.reward+=13
+            if(yawdistance==0.0 or abs(yawdistance)<=0.05):
+                self.reward+=2
+                if(self.currentaction==2):
+                    self.reward+=250
             else:
-                self.reward+=(abs(yawdistance)**-1.1+1)
+                self.reward+=(abs(yawdistance)**-0.3-1)
         else:
             if(abs(yawdistance)>=3):
-                self.reward-=4
+                self.reward-=2
             else:
-                self.reward-=(abs(yawdistance)**2)
+                self.reward-=(abs(yawdistance)**0.5-1)
 
 
         if(self.currentaction==0):
@@ -228,13 +230,10 @@ class GameEnv(gym.Env):
 
 
     def reset(self, seed=None, options=None):
-        if self.done:
-            sendAction(10)
-            asyncio.sleep(2)
         self.hitCounter = 0
-        self.done = False
         self.reward = 0
-        self.state = sendAction(6)
+        self.state = sendAction(10)
+        self.done = False
         info = {}
         return self.state, info
 
@@ -297,6 +296,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.3,0.1,0.5,500000,0.00025)
+modelInit(env,logname,0.9,0.4,0.5,500000,0.00025)
 
-modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 75000, 3)
+#modelTrainAutomatic(env, logname, 0.3,0.125,0.5, 75000, 3)
