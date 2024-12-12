@@ -207,8 +207,8 @@ class Scene(private val window: GameWindow) {
         camera.translate(Vector3f1(0.0f, 0.0f, 14.0f))
 
         camera_fp = TronCamera()
-        camera_fp.rotate(-0.610865f,0f,0f)
-        camera_fp.translate(Vector3f1(0.0f, 3f, -5f))
+        camera_fp.rotate(0f,0f,0f)
+        camera_fp.translate(Vector3f1(0.0f, 30f, -15f))
 
 
 
@@ -580,16 +580,17 @@ class Scene(private val window: GameWindow) {
             checkCollisionAsteroid()
         }
         if (window.getKeyState(GLFW_KEY_C) == true) {
-            if(cammode==0)
-            {
-                cammode=1
-                camera.parent = camera_fp
-
-            }
-            else {
-                cammode = 0
-                camera.parent = spaceship
-
+            when (cammode) {
+                0 -> {
+                    cammode=1
+                    camera.parent = camera_fp
+                    camera.rotate(-1.57f,0f,0f)
+                }
+                1 -> {
+                    cammode = 0
+                    camera.parent = spaceship
+                    camera.rotate(1.57f,0f,0f)
+                }
             }
         }
         if (window.getKeyState(GLFW_KEY_B) == true) {
@@ -616,17 +617,19 @@ class Scene(private val window: GameWindow) {
         }
 
         if (cammode ==1) {
-            if (window.getKeyState(GLFW_KEY_G) == true) {
-                camera_fp.translate(Vector3f1(0f,0.1f,0f))
+            if (window.getKeyState(GLFW_KEY_UP) == true) {
+                camera_fp.translate(Vector3f1(0f,0f,-0.1f))
             }
-            if (window.getKeyState(GLFW_KEY_H) == true) {
-                camera_fp.translate(Vector3f1(0f,-0.1f,0f))
+            if (window.getKeyState(GLFW_KEY_DOWN) == true) {
+                camera_fp.translate(Vector3f1(0f,0f,0.1f))
             }
             if (window.getKeyState(GLFW_KEY_LEFT) == true) {
-
+                //camera_fp.rotate(0f,-0.01f,0f)
+                camera_fp.translate(Vector3f1(0.1f,0f,0f))
             }
             if (window.getKeyState(GLFW_KEY_RIGHT) == true) {
-
+                //camera_fp.rotate(0f,0.01f,0f)
+                camera_fp.translate(Vector3f1(-0.1f,0f,0f))
             }
         }
 
@@ -797,9 +800,9 @@ class Scene(private val window: GameWindow) {
         //spaceship.rotate(0f, -x_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f)
 
         }
-        else
-            camera.rotateAroundPoint(0f, -x_speed, 0f, renderable.getWorldPosition())
-
+        /*else
+            camera.rotateAroundPoint(0f, -x_speed, 0f, camera_fp.getWorldPosition())
+        */
     }
     fun onMouseButton(button: Int, action: Int, mode: Int) {
         //shoot=true
@@ -810,12 +813,12 @@ class Scene(private val window: GameWindow) {
         if (yoffset < 0)
         {
             //camera.translate(Vector3f1(0.0f, 0.0f, 0.5f))
-            camera_fp.translate(Vector3f1(0.0f, 0.0f, 0.5f))
+            camera.translate(Vector3f1(0.0f, 0.0f, 0.5f))
         }
         if (yoffset > 0)
         {
             //camera.translate(Vector3f1(0.0f, 0.0f, -0.5f))
-            camera_fp.translate(Vector3f1(0.0f, 0.0f, -0.5f))
+            camera.translate(Vector3f1(0.0f, 0.0f, -0.5f))
         }
     }
 
