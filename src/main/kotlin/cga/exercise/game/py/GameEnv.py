@@ -224,7 +224,7 @@ class GameEnv(gym.Env):
             self.done = True
 
         self.state = gameData
-        self.ep_step+=self.ep_step
+        self.ep_step+=1
         #self.done = False
         truncated = False
         info = {}
@@ -268,7 +268,7 @@ def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, exp
     model.buffer_size = 50000
     model.batch_size=64
     model.gamma = 0.99
-    model.learn(total_timesteps=totalSteps, log_interval=5)
+    model.learn(total_timesteps=totalSteps, log_interval=1)
     model.save(modelName)
 
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
