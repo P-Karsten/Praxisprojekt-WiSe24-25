@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot-v2'
+logname='dqn_spaceship_asteroid_shot-v3'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -97,6 +97,7 @@ class GameEnv(gym.Env):
     def __init__(self):
         super(GameEnv, self).__init__()
         self.reward=0.0
+        self.ep_step=0
         self.reward_ep=0.0
         pos_LOW = np.float32(-1800)
         pos_HIGH = np.float32(1800)
@@ -150,6 +151,7 @@ class GameEnv(gym.Env):
         alive = gameData['alive']
         self.reward_ep+=self.reward
         self.reward=0
+
         # Reward
         #absRotation = abs(rotation)
         #self.reward = -absRotation**2
@@ -209,11 +211,11 @@ class GameEnv(gym.Env):
 
         if  (alive == 0 or self.hitCounter >= maxScore):
             with writer.as_default():
-                tf.summary.scalar("reward_ep", self.reward_ep/max_stepsEpisode, step=global_step)
+                tf.summary.scalar("reward_ep", self.reward_ep/self.ep_step, step=global_step)
                 tf.summary.scalar("score", self.hitCounter, step=global_step)
-                tf.summary.scalar("action_0", self.a0, step=global_step)
-                tf.summary.scalar("action_1", self.a1, step=global_step)
-                tf.summary.scalar("action_2", self.a2, step=global_step)
+                tf.summary.scalar("action_0%", self.a0/self.ep_step, step=global_step)
+                tf.summary.scalar("action_1%", self.a1/self.ep_step, step=global_step)
+                tf.summary.scalar("action_2%", self.a2/self.ep_step, step=global_step)
 
                 self.a0=0
                 self.a1=0
@@ -222,6 +224,7 @@ class GameEnv(gym.Env):
             self.done = True
 
         self.state = gameData
+        self.ep_step+=self.ep_step
         #self.done = False
         truncated = False
         info = {}
@@ -232,6 +235,7 @@ class GameEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.hitCounter = 0
         self.reward = 0
+        self.ep_step=0
         self.state = sendAction(10)
         self.done = False
         info = {}
@@ -270,7 +274,7 @@ def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, exp
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
     x = 0
     while x < cycles:
-        model = DQN.load(modelName, env=env, device='cpu')
+        model = DQN.load(modelName, env=env, device='cuda')
         env.setModel(model)
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
@@ -296,6 +300,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.9,0.4,0.5,500000,0.00025)
-
-modelTrainAutomatic(env, logname, 0.5,0.125,0.5, 500000, 1)
+modelInit(env,logname,0.9,0.4,0.5,500000,0.0003)
+#modelPredict(env,logname,10)
+#modelTrainAutomatic(env, logname, 0.5,0.125,0.5, 500000, 1)
