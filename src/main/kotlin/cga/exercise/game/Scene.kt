@@ -490,7 +490,7 @@ class Scene(private val window: GameWindow) {
         if (hit) {
             counter++
         }
-        println(cAsteroid)
+        //println(cAsteroid)
         //println(direction)
         //println("pitch"+pitch+"yaw"+yaw)
         //println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))

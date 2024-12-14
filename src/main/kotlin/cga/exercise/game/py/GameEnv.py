@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot-v3'
+logname='dqn_spaceship_asteroid_shot-v4'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -160,7 +160,7 @@ class GameEnv(gym.Env):
         #print((gameData['yaw'].item()))
         yawdistance = yaw_distance(gameData['yaw'].item(),rotation)
         #yawdistance=math.radians(gameData['yaw'].item())-rotation
-        #print(yawdistance
+        #print(yawdistance)
 
         if (alive == 0):
             self.reward -= 10000
@@ -177,7 +177,7 @@ class GameEnv(gym.Env):
             self.reward-=1
 
         if(yawdistance<=1 and yawdistance>=-1):
-            if(yawdistance==0.0 or abs(yawdistance)<=0.05):
+            if(yawdistance==0.0 or abs(yawdistance)<=0.025):
                 self.reward+=2
                 if(self.currentaction==2):
                     self.reward+=250
@@ -280,8 +280,8 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         model.exploration_final_eps = expFinal
         model.exploration_fraction = expFrac
         model.buffer_size = 50000
-        model.learn(total_timesteps=totalSteps, log_interval=1)
         model.save(modelName)
+        model.learn(total_timesteps=totalSteps, log_interval=1)
         print('Model saved...')
 
         x += 1
@@ -300,6 +300,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-modelInit(env,logname,0.9,0.4,0.5,500000,0.0003)
+#modelInit(env,logname,0.9,0.4,0.5,200000,0.0003)
 #modelPredict(env,logname,10)
-#modelTrainAutomatic(env, logname, 0.5,0.125,0.5, 500000, 1)
+modelTrainAutomatic(env, logname, 0.4,0.125,0.5, 200000, 1)
