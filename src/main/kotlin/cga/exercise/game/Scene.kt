@@ -63,9 +63,10 @@ class Scene(private val window: GameWindow) {
     var sendcd =0
     var speed = -0.1f
     var shoot =false
-    var cammode =0
+    var cammode =0f
     var camselect=0f
     var tempshader=1f
+
     var asteroidlist = mutableListOf<Renderable>()
     var asteroidlist2 = mutableListOf<Renderable>()
     var meshlist = mutableListOf<Mesh>()
@@ -207,7 +208,7 @@ class Scene(private val window: GameWindow) {
         camera.translate(Vector3f1(0.0f, 0.0f, 14.0f))
 
         camera_fp = TronCamera()
-        camera_fp.rotate(0f,0f,0f)
+        camera_fp.rotate(-1.57f,0f,0f)
         camera_fp.translate(Vector3f1(0.0f, 200f, -15f))
 
 
@@ -539,7 +540,7 @@ class Scene(private val window: GameWindow) {
         }
         if (window.getKeyState(GLFW_KEY_D) == true) {
             inputkey="D"
-            if(cammode==0){
+            if(cammode<=1f){
                 spaceship.rotate(0.0f, -0.01f, 0.0f)
                 }
 
@@ -555,7 +556,7 @@ class Scene(private val window: GameWindow) {
         }
         if (window.getKeyState(GLFW_KEY_A) == true) {
             inputkey="A"
-            if(cammode==0){
+            if(cammode<=1f){
                 spaceship.rotate(0.0f, 0.01f, 0.00f)
 
                 }
@@ -580,18 +581,32 @@ class Scene(private val window: GameWindow) {
             checkCollisionAsteroid()
         }
         if (window.getKeyState(GLFW_KEY_C) == true) {
-            when (cammode) {
-                0 -> {
-                    cammode=1
-                    camera.parent = camera_fp
-                    camera.rotate(-1.57f,0f,0f)
-                }
-                1 -> {
-                    cammode = 0
-                    camera.parent = spaceship
+            cammode=cammode+0.1f
+            println(cammode)
+            if (cammode>=3f) {
+                    //camera.translate(Vector3f1(0f,-200f,0f))
+                    cammode=0.0f
+                if(cammode>=0.0f&&cammode<0.1){
                     camera.rotate(1.57f,0f,0f)
+                    camera.translate(Vector3f1(0f,-200f,0f))
+                    camera.parent = spaceship
+                }
+                    //camera.parent = camera_fp
+                    //camera.rotate(-1.57f,0f,0f)
+                }
+            if(cammode>=2f) {
+                //camera.parent = camera_fp
+                if(cammode>2f&&cammode<=2.1){
+                    camera.translate(Vector3f1(0f,200f,0f))
+                    camera.rotate(-1.57f, 0f, 0f)
                 }
             }
+                /*else {
+                    cammode = 0f
+                    //camera.parent = spaceship
+                    //camera.rotate(1.57f,0f,0f)
+                }*/
+
         }
         if (window.getKeyState(GLFW_KEY_B) == true) {
 
@@ -616,7 +631,7 @@ class Scene(private val window: GameWindow) {
                 speed+=0.01f
         }
 
-        if (cammode ==1) {
+        if (cammode>1&&cammode<=2) {
             if (window.getKeyState(GLFW_KEY_UP) == true) {
                 camera_fp.translate(Vector3f1(0f,0f,-0.1f))
             }
@@ -724,7 +739,7 @@ class Scene(private val window: GameWindow) {
         counter = 0
         spaceship.cleanup()
         spaceship= ModelLoader.loadModel("assets/starsparrow/StarSparrow01.obj", 0f, Math.toRadians(180f), 0f)!!
-        //camera.parent = spaceship
+        camera.parent = spaceship
         spaceship.scale(Vector3f1(0.8f, 0.8f, 0.8f))
         spaceship.translate(initialSpaceshipPosition)
         asteroidlist.clear()
@@ -805,21 +820,23 @@ class Scene(private val window: GameWindow) {
     fun onKey(key: Int, scancode: Int, action: Int, mode: Int) {}
 
     fun onMouseMove(xpos: Double, ypos: Double) {
-        val x_speed = (xpos - window.windowWidth/ 2.0).toFloat() * 0.002f
+        val x_speed = (xpos - window.windowWidth / 2.0).toFloat() * 0.002f
 
-        val y_speed = (ypos - window.windowHeight/ 2.0).toFloat() * 0.002f
+        val y_speed = (ypos - window.windowHeight / 2.0).toFloat() * 0.002f
 
-        glfwSetCursorPos(window.m_window, window.windowWidth / 2.0, window.windowHeight/ 2.0)
+        glfwSetCursorPos(window.m_window, window.windowWidth / 2.0, window.windowHeight / 2.0)
 
-        if(cammode==0){
+        if (cammode > 1 && cammode <= 2) {
+            camera.rotateAroundPoint(0f, -x_speed, 0f, renderable.getWorldPosition())
+            //spaceship.rotate(-y_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f, 0f)
+            //spaceship.rotate(0f, -x_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f)
+
+        }
+    }
         //spaceship.rotate(-y_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f, 0f)
         //spaceship.rotate(0f, -x_speed.coerceAtMost(0.015f).coerceAtLeast(-0.015f), 0f)
 
-        }
-        /*else
-            camera.rotateAroundPoint(0f, -x_speed, 0f, camera_fp.getWorldPosition())
-        */
-    }
+
     fun onMouseButton(button: Int, action: Int, mode: Int) {
         //shoot=true
         //checkCollisionAsteroid()

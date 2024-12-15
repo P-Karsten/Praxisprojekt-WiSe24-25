@@ -178,7 +178,7 @@ class GameEnv(gym.Env):
 
         if(yawdistance<=1 and yawdistance>=-1):
             if(yawdistance==0.0 or abs(yawdistance)<=0.025):
-                self.reward+=2
+                self.reward+=3
                 if(self.currentaction==2):
                     self.reward+=250
             else:
@@ -300,6 +300,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.9,0.4,0.5,200000,0.0003)
+#modelInit(env,logname,0.8,0.3,0.5,500000,0.00025)
 #modelPredict(env,logname,10)
-modelTrainAutomatic(env, logname, 0.4,0.125,0.5, 200000, 1)
+modelTrainAutomatic(env, logname, 0.4,0.125,0.5, 500000, 1)
