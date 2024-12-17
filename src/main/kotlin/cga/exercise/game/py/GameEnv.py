@@ -216,6 +216,7 @@ class GameEnv(gym.Env):
                 tf.summary.scalar("action_0%", self.a0/self.ep_step, step=global_step)
                 tf.summary.scalar("action_1%", self.a1/self.ep_step, step=global_step)
                 tf.summary.scalar("action_2%", self.a2/self.ep_step, step=global_step)
+                tf.summary.scalar("ep_length", self.ep_step, step=global_step)
 
                 self.a0=0
                 self.a1=0
@@ -301,5 +302,5 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
 #modelInit(env,logname,0.8,0.3,0.5,500000,0.00025)
-#modelPredict(env,logname,10)
-modelTrainAutomatic(env, logname, 0.4,0.125,0.5, 500000, 1)
+modelPredict(env,logname,10)
+#modelTrainAutomatic(env, logname, 0.4,0.125,0.5, 500000, 1)

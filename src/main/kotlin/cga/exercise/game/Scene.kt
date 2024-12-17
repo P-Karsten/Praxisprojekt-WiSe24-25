@@ -320,12 +320,12 @@ class Scene(private val window: GameWindow) {
 
 
         //Laser
-        var ras = loadOBJ("assets/models/newscene.obj",true,true)
+        var ras = loadOBJ("assets/models/model.obj",true,true)
         var raymesh = Mesh(ras.objects[0].meshes[0].vertexData,ras.objects[0].meshes[0].indexData,vertexAttributes,rayMaterial)
         ray = Renderable(mutableListOf(raymesh))
         ray.scale(Vector3f1(5f,5f,5f))
         ray.translate(Vector3f1(0f,0f,0f))
-        ray.rotate(-1.5708f,1.5708f,0f)
+        ray.rotate(0f,1.5708f,0f)
 
 
 
@@ -388,24 +388,23 @@ class Scene(private val window: GameWindow) {
         Moon.render(staticShader, Vector3f1(1f,1f,1f))
         Moon2.render(staticShader, Vector3f1(1f,1f,1f))
 
-
-
         if(shoot==true){
             ray.render(staticShader, Vector3f1(10f,0.1f,0.1f))
             pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(5.0f,0.0f,0.0f))
             pointLight4.parent=ray
             pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
-            ray.translate(Vector3f1(0f,2f,0f))
+            ray.translate(Vector3f1(3f,0f,0f))
             rayl++
 
-            if(rayl>=100){
-                ray.translate(Vector3f1(0f,-200f,0f))
+            if(rayl>=80){
+                ray.translate(Vector3f1(-240f,0f,0f))
                 pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(0.0f,0.0f,0.0f))
                 pointLight4.parent=ray
                 pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
-                shoot= false
+                //ray.rotate(0f,rayrotang,0f)
+                //ray.parent=spaceship
                 rayl=0
-
+                shoot= false
             }
         }
 
@@ -493,8 +492,8 @@ class Scene(private val window: GameWindow) {
         }
         //println(cAsteroid)
         //println(direction)
-        //println("pitch"+pitch+"yaw"+yaw)
-        //println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
+        println("pitch"+pitch+"yaw"+yaw)
+        println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
         collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
 
@@ -506,8 +505,8 @@ class Scene(private val window: GameWindow) {
     fun update(dt: Float, t: Float) {
         //RL-Controls
         when(action) {
-            0 -> spaceship.rotate(0.0f, -0.01f, 0.0f) //D
-            1 -> spaceship.rotate(0.0f, 0.01f, 0.00f) //A
+            0 -> {spaceship.rotate(0.0f, -0.01f, 0.0f) } //D
+            1 -> {spaceship.rotate(0.0f, 0.01f, 0.00f) }//A
             4 -> spaceship.translate(Vector3f1(0f, 0f, 0.0f))  //S  z=0.2f
             3 -> spaceship.translate(Vector3f1(0f, 0f, speed))    //W
             2 -> shoot=true                                             //P
