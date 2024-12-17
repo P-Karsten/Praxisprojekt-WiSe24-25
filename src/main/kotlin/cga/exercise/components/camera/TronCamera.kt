@@ -11,8 +11,8 @@ class TronCamera : Transformable(), ICamera {
     private val nearPlane: Float = 0.01f // Near Plane
     private val farPlane: Float = 10000.0f // Far Plane
 
-    private var viewMatrix: Matrix4f = Matrix4f() // View-Matrix
-    private var projectionMatrix: Matrix4f = Matrix4f() // Projection-Matrix
+    var viewMatrix: Matrix4f = Matrix4f() // View-Matrix
+    var projectionMatrix: Matrix4f = Matrix4f() // Projection-Matrix
 
     init {
         //initialisiert Zustand einer Klasse

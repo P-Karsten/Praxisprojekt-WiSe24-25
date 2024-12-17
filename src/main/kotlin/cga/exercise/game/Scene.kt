@@ -2,13 +2,11 @@ package cga.exercise.game
 
 import SpotLight
 import cga.exercise.components.camera.TronCamera
-import cga.exercise.components.geometry.Material
-import cga.exercise.components.geometry.Mesh
-import cga.exercise.components.geometry.Renderable
-import cga.exercise.components.geometry.VertexAttribute
+import cga.exercise.components.geometry.*
 import cga.exercise.components.light.PointLight
 import cga.exercise.components.shader.ShaderProgram
 import cga.exercise.components.texture.Texture2D
+import cga.exercise.components.texture.TextureCubeMap
 import cga.framework.GLError
 import cga.framework.GameWindow
 import cga.framework.ModelLoader
@@ -26,11 +24,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.joml.Math
 import org.joml.Math.atan2
+import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector3fc
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL30.*
 import java.io.File
+import java.nio.FloatBuffer
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
@@ -42,6 +42,7 @@ import org.joml.Vector3f as Vector3f1
  */
 class Scene(private val window: GameWindow) {
     private val staticShader: ShaderProgram = ShaderProgram("assets/shaders/tron_vert.glsl", "assets/shaders/tron_frag.glsl")
+    private val skyboxShader: ShaderProgram = ShaderProgram("assets/shaders/skybox_vert.glsl", "assets/shaders/skybox_frag.glsl")
 
     data class DataModel(val id: Int, val message: String)
 
@@ -66,7 +67,6 @@ class Scene(private val window: GameWindow) {
     var cammode =0f
     var camselect=0f
     var tempshader=1f
-
     var asteroidlist = mutableListOf<Renderable>()
     var asteroidlist2 = mutableListOf<Renderable>()
     var meshlist = mutableListOf<Mesh>()
@@ -74,8 +74,8 @@ class Scene(private val window: GameWindow) {
     var renderable2 = Renderable(meshlist)
     var Moon = Renderable(meshlist)
     var Moon2 = Renderable(meshlist)
+    var skyboxExp = Renderable(meshlist)
     var spaceship = Renderable(meshlist)
-    var skybox = Renderable(meshlist)
     var game_over = Renderable(meshlist)
     var end_game = Renderable(meshlist)
     var reset_game = Renderable(meshlist)
@@ -98,6 +98,16 @@ class Scene(private val window: GameWindow) {
         Vector2f(1.0f, 1.0f)
 
     )
+    val skyboxNewTexture = TextureCubeMap(
+        "assets/skybox/right.png",
+        "assets/skybox/left.png",
+        "assets/skybox/top.png",
+        "assets/skybox/bottom.png",
+        "assets/skybox/front.png",
+        "assets/skybox/back.png"
+    )
+    var skyboxMaterial2: SkyboxMaterial
+
     var counter = 0
 
 
@@ -211,10 +221,6 @@ class Scene(private val window: GameWindow) {
         camera_fp.rotate(-1.57f,0f,0f)
         camera_fp.translate(Vector3f1(0.0f, 200f, -15f))
 
-
-
-        //Skybox
-        val cu = loadOBJ("assets/models/skybox.obj", true, true)
         //Menu
         val end = loadOBJ("assets/models/menu/beenden.obj", true, true)
         val ga_ov = loadOBJ("assets/models/menu/game_over.obj", true, true)
@@ -226,7 +232,6 @@ class Scene(private val window: GameWindow) {
 
         val spec = Texture2D("assets/textures/ground_diff.png", true)
         val diff = Texture2D("assets/textures/ground_diff.png", true)
-        var skybox_emit = Texture2D("assets/textures/menu_font2.png", true)
         var raytex = Texture2D("assets/textures/raytex.png", true)
         var fontMat = Texture2D("assets/textures/menu_font.png", true)
 
@@ -252,19 +257,59 @@ class Scene(private val window: GameWindow) {
                 60.0f,
                 Vector2f(1.0f, 1.0f)
         )
-        val skyboxMaterial = Material(
 
-                skybox_emit,
-                skybox_emit,
-                skybox_emit,
-                60.0f,
-                Vector2f(1.0f, 1.0f)
+        val skyboxVertices = floatArrayOf(
+            -1.0f,  1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            -1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f
         )
 
+        val vertexAttributes = arrayOf(VertexAttribute(3, 0, 3 * 4, 0))
+        val indexData = IntArray(skyboxVertices.size / 3) { it }
 
-        //Skybox
-        var skyboxmesh = Mesh(cu.objects[0].meshes[0].vertexData,cu.objects[0].meshes[0].indexData,vertexAttributes,skyboxMaterial)
-        skybox = Renderable(mutableListOf(skyboxmesh))
+        val skyboxMesh = Mesh(skyboxVertices, indexData, vertexAttributes)
+        skyboxExp = Renderable(mutableListOf(skyboxMesh))
+        skyboxMaterial2 = SkyboxMaterial(skyboxNewTexture)
+        //skyboxExp.render(skyboxShader, Vector3f1(500.0f, 500.0f, 500.0f))
+
 
         //Menu
         Moon2 = ModelLoader.loadModel("assets/Moon_3D_Model/moon.obj", -1.5708f, 1.5708f, 0f)!!
@@ -289,8 +334,8 @@ class Scene(private val window: GameWindow) {
         spaceship.translate(initialSpaceshipPosition)
 
 
-        //skybox.translate(spaceship.getWorldPosition())
-        skybox.scale(Vector3f1(1850f,1850f,1850f))
+        skyboxExp.translate(spaceship.getWorldPosition())
+        skyboxExp.scale(Vector3f1(5000f,5000f,5000f))
 
 
 
@@ -328,9 +373,6 @@ class Scene(private val window: GameWindow) {
         ray.rotate(0f,1.5708f,0f)
 
 
-
-
-
         spotLight.rotate(Math.toRadians(-2f),0f,0f)
         spotLight.parent = spaceship
         ray.parent = spaceship
@@ -351,13 +393,21 @@ class Scene(private val window: GameWindow) {
 */
         astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
 
+        camera.updateViewMatrix()
+        camera.updateProjectionMatrix()
+        val cameraPosition = camera.getWorldPosition()
+        val viewMatrixSkybox = Matrix4f(camera.viewMatrix)
+        viewMatrixSkybox.m30(0f)
+        viewMatrixSkybox.m31(0f)
+        viewMatrixSkybox.m32(0f)
+        val viewMatrixSkyboxNoTranslation = Matrix4f().lookAt(cameraPosition, org.joml.Vector3f(0f, 0f, 0f), org.joml.Vector3f(0f, 1f, 0f))
+        skyboxShader.setUniform("view", viewMatrixSkyboxNoTranslation)
+        //println("Camera Position: $cameraPosition")
+        //println("View Matrix Skybox: $viewMatrixSkybox")
+        //println("Projection Matrix: ${camera.projectionMatrix}")
+        skyboxShader.setUniform("projection", camera.projectionMatrix)
+
     }
-
-
-
-
-
-
 
 
     fun render(dt: Float, t: Float)= runBlocking {
@@ -375,8 +425,6 @@ class Scene(private val window: GameWindow) {
         pointLight5.bind(staticShader,camera.getCalculateViewMatrix(),4)
 
         spotLight.bind(staticShader, camera.getCalculateViewMatrix())
-
-        skybox.render(staticShader, Vector3f1(1f,1f,1.15f))
 
         //Menu
         //menu_backg.render(staticShader, Vector3f1(2f,2f,2f))
@@ -407,10 +455,6 @@ class Scene(private val window: GameWindow) {
                 shoot= false
             }
         }
-
-
-
-
 
 
         if(pause)
@@ -496,9 +540,6 @@ class Scene(private val window: GameWindow) {
         println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
         collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
-
-
-
     }
 
 
@@ -514,7 +555,6 @@ class Scene(private val window: GameWindow) {
         }
         action=6
         //spaceship.translate(Vector3f1(0f, 0f, speed))
-        //skybox.translate(Vector3f1(0.0f,0.0f,0.1f))
         collisionCheckTimer += dt
         checkCollisionSpaceship()
         if (b_menu ==true){
@@ -679,6 +719,22 @@ class Scene(private val window: GameWindow) {
         return true
 
     }
+
+    fun renderSkybox() {
+        glDepthMask(false)
+        glDepthFunc(GL_LEQUAL)
+        skyboxShader.use()
+        val viewMatrix = Matrix4f(camera.viewMatrix).m30(0f).m31(0f).m32(0f)
+        skyboxShader.setUniform("view", viewMatrix)
+        skyboxShader.setUniform("projection", camera.projectionMatrix)
+        skyboxMaterial2.bind(skyboxShader)
+        skyboxNewTexture.bind(0)
+        skyboxShader.setUniform("skybox", 0)
+        skyboxExp.render(skyboxShader, Vector3f1(1f, 1f, 1f))
+        glDepthMask(true)
+        glDepthFunc(GL_LESS)
+    }
+
 
     private fun GoTo_Menu() {
         //Pause / Clean Asteroids

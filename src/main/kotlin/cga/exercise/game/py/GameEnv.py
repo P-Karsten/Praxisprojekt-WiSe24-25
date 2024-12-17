@@ -97,7 +97,6 @@ class GameEnv(gym.Env):
     def __init__(self):
         super(GameEnv, self).__init__()
         self.reward=0.0
-        self.ep_step=0
         self.reward_ep=0.0
         pos_LOW = np.float32(-1800)
         pos_HIGH = np.float32(1800)
@@ -151,7 +150,6 @@ class GameEnv(gym.Env):
         alive = gameData['alive']
         self.reward_ep+=self.reward
         self.reward=0
-
         # Reward
         #absRotation = abs(rotation)
         #self.reward = -absRotation**2
@@ -167,7 +165,7 @@ class GameEnv(gym.Env):
             #print('dead...')
 
         if (self.hitCounter >= maxScore):
-            self.reward += maxScore**1.2*2000
+            self.reward += 50000
 
         if (hit == 1):
             self.hitCounter+=1
@@ -235,6 +233,8 @@ class GameEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.hitCounter = 0
+        self.reward = 0
+        self.state = sendAction(10)
         self.reward = 0
         self.ep_step=0
         self.state = sendAction(10)
