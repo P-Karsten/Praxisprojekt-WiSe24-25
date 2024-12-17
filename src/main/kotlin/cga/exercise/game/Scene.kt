@@ -302,10 +302,10 @@ class Scene(private val window: GameWindow) {
             1.0f, -1.0f,  1.0f
         )
 
-        val vertexAttributes = arrayOf(VertexAttribute(3, 0, 3 * 4, 0))
+        val vertexAttributesSkybox = arrayOf(VertexAttribute(3, 0, 3 * 4, 0))
         val indexData = IntArray(skyboxVertices.size / 3) { it }
 
-        val skyboxMesh = Mesh(skyboxVertices, indexData, vertexAttributes)
+        val skyboxMesh = Mesh(skyboxVertices, indexData, vertexAttributesSkybox)
         skyboxExp = Renderable(mutableListOf(skyboxMesh))
         skyboxMaterial2 = SkyboxMaterial(skyboxNewTexture)
         //skyboxExp.render(skyboxShader, Vector3f1(500.0f, 500.0f, 500.0f))
@@ -412,6 +412,7 @@ class Scene(private val window: GameWindow) {
 
     fun render(dt: Float, t: Float)= runBlocking {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+        renderSkybox()
         staticShader.use()
         staticShader.setUniform("gammaValue", desiredGammaValue)
 

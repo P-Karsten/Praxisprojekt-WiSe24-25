@@ -12,21 +12,13 @@ class Material(
     var tcMultiplier: Vector2f = Vector2f(1.0f)
 ) {
     fun bind(shaderProgram: ShaderProgram) {
-        // Binde Texturen nur, wenn sie existieren
-        emit?.let {
-            it.bind(1)
-            shaderProgram.setUniform("material_emissive", 1)
-        }
 
-        diff?.let {
-            it.bind(2)
-            shaderProgram.setUniform("material_diffuse", 2)
-        }
-
-        specular?.let {
-            it.bind(3)
-            shaderProgram.setUniform("material_specular", 3)
-        }
+        emit?.bind(1)
+        shaderProgram.setUniform("material_emissive", 1)
+        diff?.bind(2)
+        shaderProgram.setUniform("material_diffuse", 2)
+        specular?.bind(3)
+        shaderProgram.setUniform("material_specular", 3)
 
         shaderProgram.setUniform("shininess", shininess)
         shaderProgram.setUniform("tcMultiplier", tcMultiplier)
