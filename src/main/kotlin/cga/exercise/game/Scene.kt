@@ -34,6 +34,7 @@ import java.nio.FloatBuffer
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
+import kotlin.math.PI
 import kotlin.math.sqrt
 import org.joml.Vector3f as Vector3f1
 
@@ -107,6 +108,8 @@ class Scene(private val window: GameWindow) {
         "assets/skybox/back.png"
     )
     var skyboxMaterial2: SkyboxMaterial
+    var laserDir = 0f
+    var laserDirTmp = 0f
 
     var counter = 0
 
@@ -201,7 +204,7 @@ class Scene(private val window: GameWindow) {
                 //println(dataToSend.spaceshipRotation.y)
 
             } catch (e: Exception) {
-                println("Error sending request: ${e.localizedMessage}")
+                //println("Error sending request: ${e.localizedMessage}")
             } finally {
                 // Close the client after use
                 client.close()
@@ -210,6 +213,27 @@ class Scene(private val window: GameWindow) {
         }
         sendcd++
 
+    }
+    fun normalizeAngle(angle: Double, rangeStart: Double = -PI, rangeEnd: Double = PI): Double {
+        val rangeWidth = rangeEnd - rangeStart
+        return rangeStart + ((angle - rangeStart) % rangeWidth + rangeWidth) % rangeWidth
+    }
+
+    // Function to calculate the angular distance between two angles
+    fun angularDistance(yaw1: Double, yaw2: Double): Double {
+        val diff = yaw1 - yaw2
+        return normalizeAngle(diff)
+    }
+
+    // Function to calculate the shortest distance between two yaw angles
+    fun yawDistance(yaw1: Double, yaw2: Double): Double {
+        // Normalize to [-PI, PI)
+        val normalizedYaw1 = normalizeAngle(yaw1)
+        val normalizedYaw2 = normalizeAngle(yaw2)
+
+        // Compute the difference and wrap around
+        val diff = normalizedYaw1 - normalizedYaw2
+        return normalizeAngle(diff)
     }
     init {
 
@@ -376,6 +400,7 @@ class Scene(private val window: GameWindow) {
         spotLight.rotate(Math.toRadians(-2f),0f,0f)
         spotLight.parent = spaceship
         ray.parent = spaceship
+        //ray.translate(initialSpaceshipPosition)
 
         pointLight4.parent = ray
 
@@ -438,6 +463,14 @@ class Scene(private val window: GameWindow) {
         Moon2.render(staticShader, Vector3f1(1f,1f,1f))
 
         if(shoot==true){
+            if (rayl==0) {
+                ray.parent = null
+                laserDir = spaceship.getRotation().y
+                laserDirTmp = ray.getRotation().y
+                var a = yawDistance(laserDir.toDouble(), laserDirTmp.toDouble())
+                ray.rotate(0f, -a.toFloat() + 1.5708f , 0f)
+            }
+
             ray.render(staticShader, Vector3f1(10f,0.1f,0.1f))
             pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(5.0f,0.0f,0.0f))
             pointLight4.parent=ray
@@ -450,10 +483,9 @@ class Scene(private val window: GameWindow) {
                 pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(0.0f,0.0f,0.0f))
                 pointLight4.parent=ray
                 pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
-                //ray.rotate(0f,rayrotang,0f)
-                //ray.parent=spaceship
                 rayl=0
                 shoot= false
+                ray.parent = spaceship
             }
         }
 
@@ -537,8 +569,8 @@ class Scene(private val window: GameWindow) {
         }
         //println(cAsteroid)
         //println(direction)
-        println("pitch"+pitch+"yaw"+yaw)
-        println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
+        //println("pitch"+pitch+"yaw"+yaw)
+        //println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
         collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
     }

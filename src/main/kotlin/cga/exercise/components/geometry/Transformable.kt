@@ -5,6 +5,14 @@ import org.joml.Matrix4f
 import org.joml.Vector3f
 open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var parent: Transformable? = null) {
 
+
+    fun setPosition(targetPosition: Vector3f) {
+
+        val currentWorldPosition = getWorldPosition()
+        val offset = Vector3f(targetPosition).sub(currentWorldPosition)
+        translate(offset)
+    }
+
     /**
      * Returns copy of object model matrix
      * @return modelMatrix
