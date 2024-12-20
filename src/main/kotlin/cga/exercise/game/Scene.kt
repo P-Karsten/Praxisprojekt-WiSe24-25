@@ -34,6 +34,7 @@ import java.nio.FloatBuffer
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.*
+import kotlin.math.PI
 import kotlin.math.sqrt
 import org.joml.Vector3f as Vector3f1
 
@@ -210,6 +211,27 @@ class Scene(private val window: GameWindow) {
         }
         sendcd++
 
+    }
+    fun normalizeAngle(angle: Double, rangeStart: Double = -PI, rangeEnd: Double = PI): Double {
+        val rangeWidth = rangeEnd - rangeStart
+        return rangeStart + ((angle - rangeStart) % rangeWidth + rangeWidth) % rangeWidth
+    }
+
+    // Function to calculate the angular distance between two angles
+    fun angularDistance(yaw1: Double, yaw2: Double): Double {
+        val diff = yaw1 - yaw2
+        return normalizeAngle(diff)
+    }
+
+    // Function to calculate the shortest distance between two yaw angles
+    fun yawDistance(yaw1: Double, yaw2: Double): Double {
+        // Normalize to [-PI, PI)
+        val normalizedYaw1 = normalizeAngle(yaw1)
+        val normalizedYaw2 = normalizeAngle(yaw2)
+
+        // Compute the difference and wrap around
+        val diff = normalizedYaw1 - normalizedYaw2
+        return normalizeAngle(diff)
     }
     init {
 
@@ -537,9 +559,10 @@ class Scene(private val window: GameWindow) {
         }
         //println(cAsteroid)
         //println(direction)
-        println("pitch"+pitch+"yaw"+yaw)
+        var yawdistance = yawDistance(yaw,spaceship.getRotation().y.toDouble())
+        println("pitch"+pitch+"yawdistance"+yawdistance)
         println("spaceshiprot"+(spaceship.getRotation().y.toDouble()))
-        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yaw.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        collectData(spaceship.getWorldPosition(),spaceship.getRotation(), yawdistance.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
     }
 

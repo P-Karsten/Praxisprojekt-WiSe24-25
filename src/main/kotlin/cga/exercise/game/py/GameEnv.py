@@ -19,14 +19,14 @@ from tensorflow.python.eager.context import async_wait
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
 
-maxScore = 12
+maxScore = 15
 learningRate = 0.0001
 #learningRate = 0.00035
 timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot-v4'
+logname='dqn_spaceship_asteroid_shot_l-v3'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -55,7 +55,7 @@ def yaw_distance(yaw1, yaw2):
 
 class gameData: {
     #'spaceship_position': np.zeros(3, dtype=np.float32),
-    'spaceship_rotation': np.zeros(1, dtype=np.float32),
+    #'spaceship_rotation': np.zeros(1, dtype=np.float32),
     'yaw': np.zeros(1, dtype=np.float32),
     'hit': False,
     'alive': True
@@ -72,7 +72,7 @@ def sendAction(action):
         data=response.json()
         gameData = {
             #'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
-            'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
+            #'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
             'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
             'hit': 1 if data.get('hit', False) else 0,
             'alive': 1 if data.get('alive', False) else 0
@@ -84,7 +84,7 @@ def sendAction(action):
         #print(f'Error sending action: {action} - {e}')
         return {
             #'spaceship_position': np.zeros(3, dtype=np.float32),
-            'spaceship_rotation': np.zeros(1, dtype=np.float32),
+            #'spaceship_rotation': np.zeros(1, dtype=np.float32),
             'yaw':np.zeros(1, dtype=np.float32),
             'hit': 0,
             'alive': 1,
@@ -98,6 +98,8 @@ class GameEnv(gym.Env):
         super(GameEnv, self).__init__()
         self.reward=0.0
         self.reward_ep=0.0
+        self.high_score=0.0
+        self.short_ep=max_stepsEpisode*500
         pos_LOW = np.float32(-1800)
         pos_HIGH = np.float32(1800)
         rot_LOW = np.float32(-np.pi)
@@ -118,18 +120,18 @@ class GameEnv(gym.Env):
             #    high=np.array([pos_HIGH, pos_HIGH, pos_HIGH]),
             #    dtype=np.float32
             #),
-            'spaceship_rotation': spaces.Box(
-                low=np.array([rot_LOW]),
-                high=np.array([rot_HIGH]),
-                dtype=np.float32
-            ),
+            #'spaceship_rotation': spaces.Box(
+            #    low=np.array([rot_LOW]),
+            #    high=np.array([rot_HIGH]),
+            #    dtype=np.float32
+            #),
             'yaw': spaces.Box(
                 low=np.array([pos_LOW]),
                 high=np.array([pos_HIGH]),
                 dtype=np.float32
             ),
             #0 false 1 true
-            'hit': spaces.Discrete(2),
+            #'hit': spaces.Discrete(2),
             'alive': spaces.Discrete(2)
         })
 
@@ -145,47 +147,45 @@ class GameEnv(gym.Env):
 
         self.currentaction =action
         gameData = sendAction(self.currentaction)
-        rotation = gameData['spaceship_rotation'].item()
         hit = gameData['hit']
         alive = gameData['alive']
         self.reward_ep+=self.reward
         self.reward=0
-        # Reward
-        #absRotation = abs(rotation)
-        #self.reward = -absRotation**2
-        #print(math.radians(gameData['yaw'].item()))
-        #print(rotation)
-        #print((gameData['yaw'].item()))
-        yawdistance = yaw_distance(gameData['yaw'].item(),rotation)
-        #yawdistance=math.radians(gameData['yaw'].item())-rotation
-        #print(yawdistance)
+        self.state = {
+            'yaw': gameData['yaw'],
+            'alive': gameData['alive']
+        }
+        yawdistance = gameData['yaw'].item()
 
+        self.reward-=1
         if (alive == 0):
-            self.reward -= 10000
+            self.reward -= 50000
             #print('dead...')
 
         if (self.hitCounter >= maxScore):
-            self.reward += 50000
+            self.reward += 500000000/((self.ep_step)**0.99)
 
         if (hit == 1):
             self.hitCounter+=1
-            self.reward+=100
-            #print('Hit asterioid...')
+            #self.reward+=500
+            print('Hit asterioid...',self.hitCounter)
         if(self.currentaction==2):
             self.reward-=1
 
-        if(yawdistance<=1 and yawdistance>=-1):
-            if(yawdistance==0.0 or abs(yawdistance)<=0.025):
+
+        #if(abs(yawdistance)<=1):
+        if(yawdistance==0.0 or abs(yawdistance)<=0.025):
+            self.reward+=10
+            if(self.currentaction==2):
                 self.reward+=3
-                if(self.currentaction==2):
-                    self.reward+=250
-            else:
-                self.reward+=(abs(yawdistance)**-0.3-1)
         else:
+            self.reward-=(abs(yawdistance)*2)
+                #self.reward+=(abs(yawdistance)**-0.4)
+        """else:
             if(abs(yawdistance)>=3):
                 self.reward-=2
             else:
-                self.reward-=(abs(yawdistance)**0.5-1)
+                self.reward-=2*(abs(yawdistance)**0.5-1)"""
 
 
         if(self.currentaction==0):
@@ -219,10 +219,15 @@ class GameEnv(gym.Env):
                 self.a0=0
                 self.a1=0
                 self.a2=0
+            if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
+                #self.model.save(logname+"_short")
+                self.short_ep=self.ep_step
+                print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
             self.done = True
 
-        self.state = gameData
+        #self.state = gameData
+        #print(f"State: {self.state}, Predicted Action: {action}",self.reward)
         self.ep_step+=1
         #self.done = False
         truncated = False
@@ -234,10 +239,13 @@ class GameEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.hitCounter = 0
         self.reward = 0
-        self.state = sendAction(10)
+        gameData = sendAction(10)
+        self.state={
+            'yaw': gameData['yaw'],
+            'alive': gameData['alive']
+        }
         self.reward = 0
         self.ep_step=0
-        self.state = sendAction(10)
         self.done = False
         info = {}
         return self.state, info
@@ -266,9 +274,10 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
     model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr)
     env.setModel(model)
-    model.buffer_size = 50000
+    model.buffer_size = 500000
     model.batch_size=64
-    model.gamma = 0.99
+    model.gamma = 0.80
+    model.tau=0.25
     model.learn(total_timesteps=totalSteps, log_interval=1)
     model.save(modelName)
 
@@ -280,27 +289,36 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
         model.exploration_fraction = expFrac
-        model.buffer_size = 50000
-        model.save(modelName)
+        model.buffer_size = 500000
         model.learn(total_timesteps=totalSteps, log_interval=1)
         print('Model saved...')
-
+        model.save(modelName)
         x += 1
         print("cycle start...",x)
 
 def modelPredict(env: GameEnv, modelName: str, episodes: int):
+    # Load the trained model
     model = DQN.load(modelName, env=env)
-    state, _ = env.reset()
-    done = False
-    while not done:
-        action, _ = model.predict(state)
-        state, reward, done, truncated, info = env.step(action)
+    env.setModel(model)
 
+    for episode in range(episodes):
+        state, _ = env.reset()
+        done = False
+        total_reward = 0
 
+        while not done:
+            # Ensure state is in the correct format for the model
+            action, _ = model.predict(state, deterministic=True)  # Deterministic mode for evaluation
+            state, reward, done, truncated, info = env.step(action)
+            print(f"State: {state}, Predicted Action: {action}",reward)
+            # Accumulate rewards
+            total_reward += reward
+
+        print(f"Episode {episode + 1}/{episodes}: Total Reward = {total_reward}")
 
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.8,0.3,0.5,500000,0.00025)
-modelPredict(env,logname,10)
-#modelTrainAutomatic(env, logname, 0.4,0.125,0.5, 500000, 1)
+#modelInit(env,logname,0.6,0.15,0.6,1000000,0.00025)#todo alles nagativ reward ausser direkt angucken evtl gamma=0.95 -reward yawdis=over time
+modelPredict(env,logname,1)
+#modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 200000, 1)
