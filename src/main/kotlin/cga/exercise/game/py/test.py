@@ -18,7 +18,7 @@ class Vector3f1(BaseModel):
 
 class GameData(BaseModel):
     spaceshipPosition: List[float]
-    spaceshipRotation: Vector3f1
+    pitch: float
     yaw : float
     hit: bool
     alive: bool
@@ -30,7 +30,7 @@ starttime2=time.time()
 ready_to_send = asyncio.Event()
 ready_to_action = asyncio.Event()
 class Action(BaseModel):
-    action: int =6
+    action: int =10
 
 savedData: GameData =None
 
@@ -40,7 +40,7 @@ async def startup_event():
     ready_to_action.set()
 
 
-latest_action = 6
+latest_action = 10
 
 @app.post("/send/", response_model=Action)
 async def receive_game_data(data: GameData):
@@ -50,13 +50,13 @@ async def receive_game_data(data: GameData):
 
     response_data = GameData(
         spaceshipPosition=[pos for pos in data.spaceshipPosition],
-        spaceshipRotation=data.spaceshipRotation,
+        pitch= data.pitch,
         yaw=data.yaw,
         hit=data.hit,
         alive=data.alive
     )
     savedData = response_data
-    print(savedData.yaw)
+    #print(savedData.yaw)
     print(f"time send : {time.time() - starttime:.3f}sec")
     starttime = time.time()
 
@@ -73,7 +73,7 @@ async def receive_action(data: int = Body(...)):
     global starttime2, latest_action
 
     await ready_to_send.wait()
-
+    print(savedData)
     latest_action = data  # Update the global variable
     print(f"time action : {time.time() - starttime2:.3f}sec")
     starttime2 = time.time()
@@ -86,7 +86,7 @@ async def receive_action(data: int = Body(...)):
 
     return {
         "spaceshipPosition": savedData.spaceshipPosition,
-        "spaceshipRotation": savedData.spaceshipRotation.y,
+        "pitch": savedData.pitch,
         "yaw": savedData.yaw,
         "hit": savedData.hit,
         "alive": savedData.alive

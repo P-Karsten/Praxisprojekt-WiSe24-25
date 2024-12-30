@@ -1,7 +1,9 @@
 package cga.exercise.components.geometry
 
 import cga.exercise.game.Scene
+import org.joml.Math.atan2
 import org.joml.Matrix4f
+import org.joml.Quaternionf
 import org.joml.Vector3f
 open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var parent: Transformable? = null) {
 
@@ -48,13 +50,53 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
      * @param yaw radiant angle around y-axis ccw
      * @param roll radiant angle around z-axis ccw
      */
-
+    private var quaternion = Quaternionf()
+    fun transformVector(vector: Vector3f): Vector3f {
+        val rotationQuat = getRotationQuaternion()
+        return rotationQuat.transform(vector)
+    }
+    fun transformToLocal(vector: Vector3f): Vector3f {
+        val rotationQuat = getRotationQuaternion().invert() // Invertiert das Quaternion
+        return rotationQuat.transform(vector) // Transformiert den Zielvektor
+    }
+    fun getRotationQuaternion(): Quaternionf {
+        return quaternion
+    }
     fun rotate(pitch: Float, yaw: Float, roll: Float) {
-        // todo
-        modelMatrix.rotateXYZ(pitch,yaw,roll)
-        //throw NotImplementedError()
+        // Set roll to 0
+
+
+        val pitchQuat = Quaternionf().rotateX(pitch) // Pitch (rotation around X-axis)
+        val yawQuat = Quaternionf().rotateY(yaw)     // Yaw (rotation around Y-axis)
+        val rollQuat = Quaternionf().rotateZ(roll)   // Set roll to 0
+
+        // Combine rotations (quaternion multiplication: yaw * pitch * roll)
+        quaternion = yawQuat.mul(pitchQuat).mul(rollQuat)
+
+        // Update the model matrix with the rotation
+        updateModelMatrix()
     }
 
+    private fun updateModelMatrix() {
+        //modelMatrix.identity()  // Reset to identity
+        modelMatrix.rotate(quaternion)  // Apply the quaternion rotation
+    }
+    fun setRotation(pitch: Float, yaw: Float, roll: Float) {
+        // Reset the quaternion to identity
+        quaternion.identity()
+
+        // Create quaternions for each axis
+        val pitchQuat = Quaternionf().rotateX(pitch)
+        val yawQuat = Quaternionf().rotateY(yaw)
+        val rollQuat = Quaternionf().rotateZ(roll)
+
+        // Combine rotations (yaw * pitch * roll)
+        quaternion = yawQuat.mul(pitchQuat).mul(rollQuat)
+
+        // Update the model matrix to reflect the new rotation
+        modelMatrix.identity()
+        updateModelMatrix()
+    }
     /**
      * Rotates object around given rotation center.
      * @param pitch radiant angle around x-axis ccw
@@ -222,19 +264,36 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
         return worldZAxis.normalize()
        // throw NotImplementedError()
     }
-    fun getRotation(): Scene.Vector3f {
+
+    /*fun getRotation(): Scene.Vector3f {
         val xAxis = getXAxis()
         val yAxis = getYAxis()
         val zAxis = getZAxis()
 
         // Berechne die Yaw (Rotation um die y-Achse)
         val yaw = Math.atan2(xAxis.z.toDouble(), xAxis.x.toDouble()).toFloat()
-
         // Berechne die Pitch (Rotation um die x-Achse)
         val pitch = Math.asin(-xAxis.y.toDouble()).toFloat()
 
         // Berechne die Roll (Rotation um die z-Achse)
         val roll = Math.atan2(yAxis.y.toDouble(), zAxis.y.toDouble()).toFloat()
+        //val roll = Math.atan2(zAxis.x.toDouble(), zAxis.z.toDouble()).toFloat()
+        return Scene.Vector3f(pitch, yaw, roll)
+    }*/
+    fun getRotation(): Scene.Vector3f {
+        val xAxis = getXAxis()
+        val yAxis = getYAxis()
+        val zAxis = getZAxis()
+
+        // Calculate Yaw (rotation around the Y-axis)
+        val yaw = Math.atan2(xAxis.z.toDouble(), xAxis.x.toDouble()).toFloat()
+
+        // Calculate Pitch (rotation around the X-axis)
+        val roll = Math.asin(xAxis.y.toDouble()).toFloat()
+
+        // Calculate Roll (rotation around the Z-axis)
+        val pitch = Math.atan2(yAxis.y.toDouble(), zAxis.y.toDouble()).toFloat()
+        //val roll = Math.atan2(yAxis.x.toDouble(), zAxis.x.toDouble()).toFloat()
 
         return Scene.Vector3f(pitch, yaw, roll)
     }
