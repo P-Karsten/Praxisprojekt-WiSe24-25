@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v4'
+logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v10_short'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -113,6 +113,8 @@ class GameEnv(gym.Env):
         self.a2=0
         self.a3=0
         self.a4=0
+        self.previous_yawdistance =3.14
+        self.previous_pitchdistance=3.14
         self.model = None
         self.hitCounter = 0
         # W, A, S, D, P (shift)
@@ -155,8 +157,8 @@ class GameEnv(gym.Env):
 
     def step(self, action):
 
-        self.currentaction =action
         gameData = sendAction(self.currentaction)
+        self.currentaction =action
         hit = gameData['hit']
         alive = gameData['alive']
         self.reward_ep+=self.reward
@@ -170,31 +172,37 @@ class GameEnv(gym.Env):
         yawdistance = gameData['yaw'].item()
         pitchdistance = gameData['pitch'].item()
         #print(pitchdistance)
-        self.reward-=1
+        self.reward-=0.25
         if (alive == 0):
             self.reward -= 50000
             #print('dead...')
 
         if (self.hitCounter >= maxScore):
-            self.reward += 500000000/((self.ep_step)**0.99)
+            self.reward += 500000000/((self.ep_step)**0.85)
 
         if (hit == 1):
             self.hitCounter+=1
-            self.reward+=1500*self.hitCounter
+            self.reward+=2500
+            #self.reward+=1500*self.hitCounter
             print('Hit asterioid...',self.hitCounter)
         if(self.currentaction==2):
-            self.reward-=1
+            self.reward-=0.5
 
 
         #if(abs(yawdistance)<=1):
-        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025)):
-            self.reward+=5
-            if(self.currentaction==2):
-                self.reward+=100
+        if((yawdistance==0.0 or abs(yawdistance)<=0.03) and (pitchdistance==0.0 or abs(pitchdistance)<=0.03)):
+            self.reward+=2.5
+            #if(self.currentaction==2):
+                #self.reward+=100
         else:
-            self.reward-=(abs(yawdistance)*2)
-            self.reward-=(abs(pitchdistance)*2)
-
+            self.reward-=(abs(yawdistance))
+            self.reward-=(abs(pitchdistance))
+        if(abs(yawdistance)<=0.035 and abs(pitchdistance)<=0.035 and self.currentaction==2):
+            self.reward+=3
+        if abs(yawdistance) < abs(self.previous_yawdistance):
+            self.reward += 0.2
+        if abs(pitchdistance) < abs(self.previous_pitchdistance):
+            self.reward += 0.1
        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
         #    self.reward+=10
         #if(self.currentaction==2):
@@ -248,6 +256,7 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
+                self.model.save(logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
                 self.model.save(logname+"_short")
                 self.short_ep=self.ep_step
@@ -256,8 +265,11 @@ class GameEnv(gym.Env):
             self.done = True
 
         #self.state = gameData
-        #print(f"State: {self.state}, Predicted Action: {action}",self.reward)
+        print(f"State: {self.state}, Predicted Action: {action}",self.reward)
         self.ep_step+=1
+        self.previous_yawdistance=yawdistance
+        self.previous_pitchdistance=pitchdistance
+
         #self.done = False
         truncated = False
         info = {}
@@ -305,10 +317,10 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
     model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr)
     env.setModel(model)
-    model.buffer_size = 500000
-    model.batch_size=64
-    model.gamma = 0.80
-    model.tau=0.25
+    model.buffer_size = 1000000
+    model.batch_size=128
+    model.gamma = 0.90
+    model.tau=0.20
     model.learn(total_timesteps=totalSteps, log_interval=1)
     model.save(modelName)
 
@@ -350,6 +362,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-modelInit(env,logname,0.8,0.15,0.7,1000000,0.00025)#todo alles nagativ reward ausser direkt angucken evtl gamma=0.95 -reward yawdis=over time
-#modelPredict(env,logname,1)
+#modelInit(env,logname,0.8,0.15,0.7,1000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 200000, 1)

@@ -465,7 +465,7 @@ class Scene(private val window: GameWindow) {
 
         pointLight.bind(staticShader,camera.getCalculateViewMatrix(),0)
 
-        pointLight5.bind(staticShader,camera.getCalculateViewMatrix(),4)
+        //pointLight5.bind(staticShader,camera.getCalculateViewMatrix(),4)
 
         spotLight.bind(staticShader, camera.getCalculateViewMatrix())
 
@@ -489,8 +489,8 @@ class Scene(private val window: GameWindow) {
             ray.translate(Vector3f1(3f,0f,0f))
             rayl++
 
-            if(rayl>=125){
-                ray.translate(Vector3f1(-375f,0f,0f))
+            if(rayl>=200){
+                ray.translate(Vector3f1(-600f,0f,0f))
                 pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(0.0f,0.0f,0.0f))
                 pointLight4.parent=ray
                 pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
@@ -543,25 +543,6 @@ class Scene(private val window: GameWindow) {
         }*/
         }
 
-        if(spaceship.getWorldPosition().x>=1700f||spaceship.getWorldPosition().y>=1700f||spaceship.getWorldPosition().z>=1700f||spaceship.getWorldPosition().x<=-1700f||spaceship.getWorldPosition().y<=-1700f||spaceship.getWorldPosition().z<=-1700f) {
-            //Flashing
-            light_last += dt
-
-            if (light_last >= light_int){
-                light_on = !light_on
-                light_last = 0f
-
-                if (light_on) {
-                    pointLight = PointLight(Vector3f1(0f, 5f, 0f), Vector3f1(1f, 0f, 0f))
-                    pointLight.parent = spaceship
-                }
-                else {
-                    pointLight.parent = null
-                }
-            }
-
-
-        }
         else{
             pointLight = PointLight(Vector3f1(0f, 5f, 0f), Vector3f1(0.11f, 0.11f, 0.11f))
             pointLight.parent = spaceship
@@ -582,21 +563,17 @@ class Scene(private val window: GameWindow) {
             counter++
         }
 
-        println("aste "+cAsteroid)
-        println("dir "+directionLocal)
+        //println("aste "+cAsteroid)
+        //println("dir "+directionLocal)
         var yawdistance = yawDistance(yaw.toDouble(),spaceship.getRotation().y.toDouble())
         var pitchdistance= yawDistance(pitch.toDouble(),spaceship.getRotation().x.toDouble()-1.5707964f)
-        println("yaw "+yaw+"pitch "+pitch)
-        println("spaceshiprot "+spaceship.getRotation())
-        println("pitchdis "+pitchdistance+"yawdistance "+yawdistance)
+        //println("yaw "+yaw+"pitch "+pitch)
+        //println("spaceshiprot "+spaceship.getRotation())
+        println(abs(pitchdistance)+abs(yawdistance))
         //println("casteroid "+(cAsteroid))
         //println("spaceship koord "+spaceship.getWorldPosition())
 
         //ray.render(staticShader,Vector3f1(1f,1f,1f))
-        if(spaceship.getRotation().z>0)
-            spaceship.rotate(0f,0f,-spaceship.getRotation().z)
-        else
-            spaceship.rotate(0f,0f,abs(spaceship.getRotation().z))
         //ray.parent = spaceship
         //ray.setRotation(0f,-yaw.toFloat()+1.5707f,pitch.toFloat())
         //spaceship.setRotation(pitch.toFloat(),yaw.toFloat(),0f)
@@ -621,10 +598,14 @@ class Scene(private val window: GameWindow) {
         }
 
         action=11
+        if(spaceship.getRotation().z>0)
+            spaceship.rotate(0f,0f,-spaceship.getRotation().z)
+        else
+            spaceship.rotate(0f,0f,abs(spaceship.getRotation().z))
         //spaceship.translate(Vector3f1(0f, 0f, speed))
         collisionCheckTimer += dt
         checkCollisionSpaceship()
-        checkCollisionAsteroid()
+        //checkCollisionAsteroid()
         if (b_menu ==true){
             checkCollisionMenu()
             //saveDataset(gameDataset,"testdata1")
