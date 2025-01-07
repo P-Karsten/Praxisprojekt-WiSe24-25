@@ -108,6 +108,11 @@ class Scene(private val window: GameWindow) {
         "assets/skybox/back.png"
     )
     var skyboxMaterial2: SkyboxMaterial
+    var laserDirX = 0f
+    var laserDirTmpX = 0f
+    var laserDirY = 0f
+    var laserDirTmpY = 0f
+    var spaceshipPosOld = Vector3f1(0f,0f,0f)
 
     var counter = 0
 
@@ -261,7 +266,7 @@ class Scene(private val window: GameWindow) {
         val end = loadOBJ("assets/models/menu/beenden.obj", true, true)
         val ga_ov = loadOBJ("assets/models/menu/game_over.obj", true, true)
         val reset = loadOBJ("assets/models/menu/neustart.obj", true, true)
-        var groun = loadOBJ("assets/models/ground.obj", true, true)
+
         enableDepthTest(GL_LESS) //Tiefentest, werden Pixel in der richtigen Reihenfolge gerendert
         //enableFaceCulling(GL_CCW, GL_FRONT)
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f); GLError.checkThrow() //schwarze hintergrundfarbe, alpha1.0f völlige deckkraft
@@ -270,20 +275,13 @@ class Scene(private val window: GameWindow) {
         val diff = Texture2D("assets/textures/ground_diff.png", true)
         var raytex = Texture2D("assets/textures/raytex.png", true)
         var fontMat = Texture2D("assets/textures/menu_font.png", true)
-        var emit = Texture2D("assets/textures/ground_emit.png", true)
+
 
         fontMat.bind(0)
         fontMat.setTexParams(GL_CLAMP, GL_CLAMP, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
         fontMat.unbind()
 
-        val groundMaterial = Material(
 
-            diff,
-            emit,
-            spec,
-            600.0f,
-            Vector2f(1.0f, 1.0f)
-        )
         val rayMaterial = Material(
 
             raytex,
@@ -402,10 +400,6 @@ class Scene(private val window: GameWindow) {
         pointLight5.parent=Moon
 
 
-        var groundMesh =Mesh(groun.objects[0].meshes[0].vertexData,groun.objects[0].meshes[0].indexData,vertexAttributes,groundMaterial)
-        ground = Renderable(mutableListOf(groundMesh))
-        ground.scale(Vector3f1(1000f,1000f,1000f))
-        ground.rotate(0f,0f,0f)
         //Laser
         var ras = loadOBJ("assets/models/model.obj",true,true)
         var raymesh = Mesh(ras.objects[0].meshes[0].vertexData,ras.objects[0].meshes[0].indexData,vertexAttributes,rayMaterial)
@@ -423,7 +417,7 @@ class Scene(private val window: GameWindow) {
 
         pointLight.parent = spaceship
 /*
-        for(i in 1..25)//random asteroid spawn
+        for(i in 1..4)//random asteroid spawn
         {
             var rendertemp = ModelLoader.loadModel("assets/10464_Asteroid_L3.123c72035d71-abea-4a34-9131-5e9eeeffadcb/10464_Asteroid_v1_Iterations-2.obj", -1.5708f, 1.5708f, 0f)!!
             var ascale=Random().nextFloat(0.005f,0.01f)
@@ -479,9 +473,19 @@ class Scene(private val window: GameWindow) {
         Moon.render(staticShader, Vector3f1(1f,1f,1f))
         Moon2.render(staticShader, Vector3f1(1f,1f,1f))
 
-        //ground.render(staticShader,Vector3f1(1000f,1000f,1000f))
-
         if(shoot==true){
+            if (rayl==0) {
+                ray.parent = spaceship
+                /*laserDirX = spaceship.getRotation().x
+                laserDirY = spaceship.getRotation().y
+                laserDirTmpX = ray.getRotation().x
+                laserDirTmpY = ray.getRotation().y
+                //var x = yawDistance(laserDirX.toDouble(), laserDirTmpX.toDouble())
+                var y = yawDistance(laserDirY.toDouble(), laserDirTmpY.toDouble())
+                //ray.rotate(-y.toFloat(), -x.toFloat() + 1.5708f , 0f)
+                ray.rotate(-y.toFloat(), 0f, 0f)*/
+            }
+
             ray.render(staticShader, Vector3f1(10f,0.1f,0.1f))
             pointLight4 = PointLight(Vector3f1(0f, 1f, 0f), Vector3f1(5.0f,0.0f,0.0f))
             pointLight4.parent=ray
@@ -495,9 +499,10 @@ class Scene(private val window: GameWindow) {
                 pointLight4.parent=ray
                 pointLight4.bind(staticShader,camera.getCalculateViewMatrix(),3)
                 //ray.rotate(0f,rayrotang,0f)
-                ray.parent=spaceship
+                //ray.parent=spaceship
                 rayl=0
                 shoot= false
+                ray.parent = spaceship
             }
         }
 
@@ -585,7 +590,6 @@ class Scene(private val window: GameWindow) {
 
     fun update(dt: Float, t: Float) {
         //RL-Controls
-
         when(action) {
             0 -> {spaceship.rotate(0.0f, -0.009f, 0.0f) } //D
             1 -> {spaceship.rotate(0.0f, 0.009f, 0.00f) }//A

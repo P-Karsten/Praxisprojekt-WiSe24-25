@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v10_short'
+logname='dqn_spaceship_asteroid_shot_l_7actions-v1'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -184,7 +184,7 @@ class GameEnv(gym.Env):
             self.hitCounter+=1
             self.reward+=2500
             #self.reward+=1500*self.hitCounter
-            print('Hit asterioid...',self.hitCounter)
+            #print('Hit asterioid...',self.hitCounter)
         if(self.currentaction==2):
             self.reward-=0.5
 
@@ -194,6 +194,7 @@ class GameEnv(gym.Env):
             self.reward+=2.5
             #if(self.currentaction==2):
                 #self.reward+=100
+                #self.reward+=500 #PPO
         else:
             self.reward-=(abs(yawdistance))
             self.reward-=(abs(pitchdistance))
@@ -307,15 +308,8 @@ check_env(env)
 
 
 #Training functions
-def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
-    model = DQN.load(modelName, env=env)
-    env.setModel(model)
-    model.exploration_initial_eps = exp
-    model.learn(total_timesteps=totalSteps, log_interval=5)
-    model.save(modelName)
-
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
-    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr)
+    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr, device="cuda")
     env.setModel(model)
     model.buffer_size = 1000000
     model.batch_size=128
