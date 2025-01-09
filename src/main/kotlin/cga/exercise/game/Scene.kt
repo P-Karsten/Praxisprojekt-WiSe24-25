@@ -108,6 +108,11 @@ class Scene(private val window: GameWindow) {
         "assets/skybox/back.png"
     )
     var skyboxMaterial2: SkyboxMaterial
+    var laserDirX = 0f
+    var laserDirTmpX = 0f
+    var laserDirY = 0f
+    var laserDirTmpY = 0f
+    var spaceshipPosOld = Vector3f1(0f,0f,0f)
 
     var counter = 0
 
@@ -195,6 +200,8 @@ class Scene(private val window: GameWindow) {
                     contentType(ContentType.Application.Json)
                     setBody(dataToSend)  // Send GameData as request body
                 }.body() // Extract the response body as GameData
+
+
                 //println("POST Response: ${postResponse}"
                 action = postResponse.action
                 //println(dataToSend.spaceshipRotation.y)
@@ -259,7 +266,7 @@ class Scene(private val window: GameWindow) {
         val end = loadOBJ("assets/models/menu/beenden.obj", true, true)
         val ga_ov = loadOBJ("assets/models/menu/game_over.obj", true, true)
         val reset = loadOBJ("assets/models/menu/neustart.obj", true, true)
-        var groun = loadOBJ("assets/models/ground.obj", true, true)
+
         enableDepthTest(GL_LESS) //Tiefentest, werden Pixel in der richtigen Reihenfolge gerendert
         //enableFaceCulling(GL_CCW, GL_FRONT)
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f); GLError.checkThrow() //schwarze hintergrundfarbe, alpha1.0f völlige deckkraft
@@ -268,20 +275,13 @@ class Scene(private val window: GameWindow) {
         val diff = Texture2D("assets/textures/ground_diff.png", true)
         var raytex = Texture2D("assets/textures/raytex.png", true)
         var fontMat = Texture2D("assets/textures/menu_font.png", true)
-        var emit = Texture2D("assets/textures/ground_emit.png", true)
+
 
         fontMat.bind(0)
         fontMat.setTexParams(GL_CLAMP, GL_CLAMP, GL_LINEAR_MIPMAP_LINEAR, GL_LINEAR)
         fontMat.unbind()
 
-        val groundMaterial = Material(
 
-            diff,
-            emit,
-            spec,
-            600.0f,
-            Vector2f(1.0f, 1.0f)
-        )
         val rayMaterial = Material(
 
             raytex,
@@ -400,10 +400,6 @@ class Scene(private val window: GameWindow) {
         pointLight5.parent=Moon
 
 
-        var groundMesh =Mesh(groun.objects[0].meshes[0].vertexData,groun.objects[0].meshes[0].indexData,vertexAttributes,groundMaterial)
-        ground = Renderable(mutableListOf(groundMesh))
-        ground.scale(Vector3f1(1000f,1000f,1000f))
-        ground.rotate(0f,0f,0f)
         //Laser
         var ras = loadOBJ("assets/models/model.obj",true,true)
         var raymesh = Mesh(ras.objects[0].meshes[0].vertexData,ras.objects[0].meshes[0].indexData,vertexAttributes,rayMaterial)
@@ -476,8 +472,6 @@ class Scene(private val window: GameWindow) {
         spaceship.render(staticShader, Vector3f1(1.2f,1.2f,1.2f))
         Moon.render(staticShader, Vector3f1(1f,1f,1f))
         Moon2.render(staticShader, Vector3f1(1f,1f,1f))
-
-        //ground.render(staticShader,Vector3f1(1000f,1000f,1000f))
 
         if(shoot==true){
             ray.render(staticShader, Vector3f1(10f,0.1f,0.1f))
@@ -581,10 +575,8 @@ class Scene(private val window: GameWindow) {
     }
 
 
-
     fun update(dt: Float, t: Float) {
         //RL-Controls
-
 
         when(action) {
             0 -> {spaceship.rotate(0.0f, -0.009f, 0.0f) } //D

@@ -193,15 +193,15 @@ class GameEnv(gym.Env):
         if((yawdistance==0.0 or abs(yawdistance)<=0.03) and (pitchdistance==0.0 or abs(pitchdistance)<=0.03)):
             self.reward+=2.5
             #if(self.currentaction==2):
-            #self.reward+=100
-            #self.reward+=500 #PPO
+                #self.reward+=100
+                #self.reward+=500 #PPO
         else:
             self.reward-=(abs(yawdistance))
             self.reward-=(abs(pitchdistance))
         if(abs(yawdistance)<=0.035 and abs(pitchdistance)<=0.035 and self.currentaction==2):
             self.reward+=3
         if abs(yawdistance) < abs(self.previous_yawdistance):
-            self.reward += 0.1
+            self.reward += 0.2
         if abs(pitchdistance) < abs(self.previous_pitchdistance):
             self.reward += 0.1
        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
@@ -316,7 +316,7 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
     model.save(modelName)
 
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
-    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr)
+    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr, device="cuda")
     env.setModel(model)
     model.buffer_size = 1000000
     model.batch_size=128
