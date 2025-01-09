@@ -201,7 +201,7 @@ class GameEnv(gym.Env):
         if(abs(yawdistance)<=0.035 and abs(pitchdistance)<=0.035 and self.currentaction==2):
             self.reward+=3
         if abs(yawdistance) < abs(self.previous_yawdistance):
-            self.reward += 0.2
+            self.reward += 0.12
         if abs(pitchdistance) < abs(self.previous_pitchdistance):
             self.reward += 0.1
        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
