@@ -30,7 +30,7 @@ starttime2=time.time()
 ready_to_send = asyncio.Event()
 ready_to_action = asyncio.Event()
 class Action(BaseModel):
-    action: int =10
+    action: int =11
 
 savedData: GameData =None
 
@@ -40,7 +40,7 @@ async def startup_event():
     ready_to_action.set()
 
 
-latest_action = 10
+latest_action = 11
 
 @app.post("/send/", response_model=Action)
 async def receive_game_data(data: GameData):
@@ -57,8 +57,8 @@ async def receive_game_data(data: GameData):
     )
     savedData = response_data
     #print(savedData.yaw)
-    print(f"time send : {time.time() - starttime:.3f}sec")
-    starttime = time.time()
+    #print(f"time send : {time.time() - starttime:.3f}sec")
+    #starttime = time.time()
 
     ready_to_send.set()
     ready_to_action.clear()
@@ -73,10 +73,10 @@ async def receive_action(data: int = Body(...)):
     global starttime2, latest_action
 
     await ready_to_send.wait()
-    print(savedData)
+    #print(savedData)
     latest_action = data  # Update the global variable
-    print(f"time action : {time.time() - starttime2:.3f}sec")
-    starttime2 = time.time()
+    #print(f"time action : {time.time() - starttime2:.3f}sec")
+    #starttime2 = time.time()
 
     ready_to_action.set()
     ready_to_send.clear()

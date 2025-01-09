@@ -195,8 +195,6 @@ class Scene(private val window: GameWindow) {
                     contentType(ContentType.Application.Json)
                     setBody(dataToSend)  // Send GameData as request body
                 }.body() // Extract the response body as GameData
-
-
                 //println("POST Response: ${postResponse}"
                 action = postResponse.action
                 //println(dataToSend.spaceshipRotation.y)
@@ -583,8 +581,10 @@ class Scene(private val window: GameWindow) {
     }
 
 
+
     fun update(dt: Float, t: Float) {
         //RL-Controls
+
 
         when(action) {
             0 -> {spaceship.rotate(0.0f, -0.009f, 0.0f) } //D
@@ -899,15 +899,9 @@ class Scene(private val window: GameWindow) {
 
             val distance = shotPosition.distance(asteroidPosition)
             if (distance < 12.0f) {
-                /*var direction=Vector3f(spaceship.getWorldPosition().x-cAsteroid.x , spaceship.getWorldPosition().y-cAsteroid.y ,spaceship.getWorldPosition().z-cAsteroid.z )
-                var yaw = (atan2(direction.x,direction.z).toDouble())*-1
-                var pitch = atan2(direction.y, sqrt(direction.x * direction.x + direction.z * direction.z)).toDouble()
-                var yawdistance = yawDistance(yaw,spaceship.getRotation().y.toDouble())
-                var pitchdistance= yawDistance(pitch,spaceship.getRotation().x.toDouble())
-                println("pitch"+pitchdistance+"yawdistance"+yawdistance)*/
+
 
                 iterator2.remove()
-                cleanup()
                 cAsteroid=Vector3f(10000f,10000f,10000f)
                 score+=500f
                 astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
