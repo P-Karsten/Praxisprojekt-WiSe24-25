@@ -15,7 +15,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from pydantic import BaseModel
 import httpx
 from tensorflow.python.eager.context import async_wait
-
+import optuna
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
 
@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v15_short'
+logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v18_v2'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -55,7 +55,7 @@ def yaw_distance(yaw1, yaw2):
 
 class gameData: {
     #'spaceship_position': np.zeros(3, dtype=np.float32),
-    #'spaceship_rotation': np.zeros(1, dtype=np.float32),
+    #'spaceship_rotation': np.zeros(3, dtype=np.float32),
     'pitch': np.zeros(1, dtype=np.float32),
     'yaw': np.zeros(1, dtype=np.float32),
     'hit': False,
@@ -73,7 +73,7 @@ def sendAction(action):
         data=response.json()
         gameData = {
             #'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
-            #'spaceship_rotation':np.array([data.get('spaceshipRotation',0)], dtype=np.float32),
+            #'spaceship_rotation':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
             'pitch':np.array([data.get('pitch',0)],dtype=np.float32),
             'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
             'hit': 1 if data.get('hit', False) else 0,
@@ -86,7 +86,7 @@ def sendAction(action):
         #print(f'Error sending action: {action} - {e}')
         return {
             #'spaceship_position': np.zeros(3, dtype=np.float32),
-            #'spaceship_rotation': np.zeros(1, dtype=np.float32),
+            #'spaceship_rotation': np.zeros(3, dtype=np.float32),
             'pitch':np.zeros(1, dtype=np.float32),
             'yaw':np.zeros(1, dtype=np.float32),
             'hit': 0,
@@ -128,9 +128,9 @@ class GameEnv(gym.Env):
             #    dtype=np.float32
             #),
             #'spaceship_rotation': spaces.Box(
-            #    low=np.array([rot_LOW]),
-            #    high=np.array([rot_HIGH]),
-            #    dtype=np.float32
+             #   low=np.array([rot_LOW, rot_LOW, rot_LOW]),
+              #  high=np.array([rot_HIGH, rot_HIGH, rot_HIGH]),
+               # dtype=np.float32
             #),
             'pitch': spaces.Box(
                 low=np.array([rot_LOW]),
@@ -164,6 +164,7 @@ class GameEnv(gym.Env):
         self.reward_ep+=self.reward
         self.reward=0
         self.state = {
+            #'spaceship_rotation':gameData['spaceship_rotation'],
             'pitch': gameData['pitch'],
             'yaw': gameData['yaw'],
             'hit': gameData['hit'],
@@ -174,15 +175,16 @@ class GameEnv(gym.Env):
         #print(pitchdistance)
         self.reward-=0.25
         if (alive == 0):
-            self.reward -= 50000
+            self.reward -= 5000
             #print('dead...')
 
         if (self.hitCounter >= maxScore):
-            self.reward += 500000000/((self.ep_step)**0.85)
-
-        if (hit == 1):
+            self.reward += 50000000/((self.ep_step)**0.85)
+        if(hit==1):
             self.hitCounter+=1
-            self.reward+=2500
+            self.reward=10
+        if (hit == 1 and abs(yawdistance)<=0.05 and abs(pitchdistance)<=0.05):
+            self.reward+=1000
             #self.reward+=1500*self.hitCounter
             #print('Hit asterioid...',self.hitCounter)
         if(self.currentaction==2):
@@ -190,20 +192,20 @@ class GameEnv(gym.Env):
 
 
         #if(abs(yawdistance)<=1):
-        if((yawdistance==0.0 or abs(yawdistance)<=0.03) and (pitchdistance==0.0 or abs(pitchdistance)<=0.03)):
-            self.reward+=2.5
+        if((yawdistance==0.0 or abs(yawdistance)<=0.035) and (pitchdistance==0.0 or abs(pitchdistance)<=0.035)):
+            self.reward+=1
             #if(self.currentaction==2):
                 #self.reward+=100
                 #self.reward+=500 #PPO
-        else:
-            self.reward-=(abs(yawdistance))
-            self.reward-=(abs(pitchdistance))
+
+        self.reward-=(abs(yawdistance))
+        self.reward-=(abs(pitchdistance))
         if(abs(yawdistance)<=0.035 and abs(pitchdistance)<=0.035 and self.currentaction==2):
             self.reward+=3
-        if abs(yawdistance) < abs(self.previous_yawdistance):
-            self.reward += 0.12
-        if abs(pitchdistance) < abs(self.previous_pitchdistance):
-            self.reward += 0.1
+        #if abs(yawdistance) < abs(self.previous_yawdistance):
+         #   self.reward += 0.11
+        #if abs(pitchdistance) < abs(self.previous_pitchdistance):
+         #   self.reward += 0.1
        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
         #    self.reward+=10
         #if(self.currentaction==2):
@@ -251,15 +253,15 @@ class GameEnv(gym.Env):
                 tf.summary.scalar("action_3%", self.a3/self.ep_step, step=global_step)
                 tf.summary.scalar("action_4%", self.a4/self.ep_step, step=global_step)
                 tf.summary.scalar("ep_length", self.ep_step, step=global_step)
-
+                print(self.hitCounter)
                 self.a0=0
                 self.a1=0
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                self.model.save(logname+"_A")
+                #self.model.save(logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                self.model.save(logname+"_short")
+                #self.model.save(logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -283,6 +285,7 @@ class GameEnv(gym.Env):
         self.reward = 0
         gameData = sendAction(10)
         self.state={
+            #'spaceship_rotation':gameData['spaceship_rotation'],
             'pitch': gameData['pitch'],
             'yaw': gameData['yaw'],
             'hit': gameData['hit'],
@@ -320,8 +323,8 @@ def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, exp
     env.setModel(model)
     model.buffer_size = 1000000
     model.batch_size=128
-    model.gamma = 0.99
-    model.tau=0.20
+    model.gamma = 0.95
+    model.tau=0.10
     model.learn(total_timesteps=totalSteps, log_interval=1)
     model.save(modelName)
 
@@ -352,7 +355,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
         while not done:
             # Ensure state is in the correct format for the model
-            action, _ = model.predict(state, deterministic=True)  # Deterministic mode for evaluation
+            action, _ = model.predict(state, deterministic=False)  # Deterministic mode for evaluation
             state, reward, done, truncated, info = env.step(action)
             print(f"State: {state}, Predicted Action: {action}",reward)
             # Accumulate rewards
@@ -363,6 +366,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.8,0.05,0.75,500000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+#modelInit(env,logname,0.7,0.05,0.75,1000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
 modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 1000000, 1)
+
