@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='ppo_spaceship_asteroid_shot-v2'
+logname='PPO_vs_DQN_ModelPPO-aimFix-v3'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -53,9 +53,27 @@ def yaw_distance(yaw1, yaw2):
     diff = yaw1 - yaw2
     return normalize_angle(diff)
 
+
+class EntCoefScheduler(BaseCallback):
+    def __init__(self, initial_ent_coef, final_ent_coef, total_timesteps, verbose=0):
+        super().__init__(verbose)
+        self.initial_ent_coef = initial_ent_coef
+        self.final_ent_coef = final_ent_coef
+        self.total_timesteps = total_timesteps
+
+    def _on_step(self) -> bool:
+        progress = self.num_timesteps / self.total_timesteps
+        current_ent_coef = self.initial_ent_coef - progress * (self.initial_ent_coef - self.final_ent_coef)
+        self.model.ent_coef = current_ent_coef
+        if self.verbose > 0:
+            print(f"Step: {self.num_timesteps}, Entropy Coefficient: {current_ent_coef:.6f}")
+        return True
+
+
+
 class gameData: {
     #'spaceship_position': np.zeros(3, dtype=np.float32),
-    #'spaceship_rotation': np.zeros(1, dtype=np.float32),
+    #'spaceship_rotation': np.zeros(3, dtype=np.float32),
     'pitch': np.zeros(1, dtype=np.float32),
     'yaw': np.zeros(1, dtype=np.float32),
     'hit': False,
@@ -133,13 +151,13 @@ class GameEnv(gym.Env):
             #    dtype=np.float32
             #),
             'pitch': spaces.Box(
-                low=np.array([pos_LOW]),
-                high=np.array([pos_HIGH]),
+                low=np.array([rot_LOW]),
+                high=np.array([rot_HIGH]),
                 dtype=np.float32
             ),
             'yaw': spaces.Box(
-                low=np.array([pos_LOW]),
-                high=np.array([pos_HIGH]),
+                low=np.array([rot_LOW]),
+                high=np.array([rot_HIGH]),
                 dtype=np.float32
             ),
             #0 false 1 true
@@ -172,30 +190,43 @@ class GameEnv(gym.Env):
         yawdistance = gameData['yaw'].item()
         pitchdistance = gameData['pitch'].item()
         #print(pitchdistance)
-        self.reward-=0.35
+
+        #Rewards PPO
+        self.reward-=0.25
         if (alive == 0):
-            self.reward -= 50000
+            self.reward -= 5000
+            #print('dead...')
 
         if (self.hitCounter >= maxScore):
-            self.reward += 500000000/((self.ep_step)**0.7)
-
-        if (hit == 1):
+            self.reward += 50000000/((self.ep_step)**0.85)
+        if(hit==1):
             self.hitCounter+=1
-            self.reward+=1500*self.hitCounter
+            #self.reward=10
+
+        """
+        if (hit == 1 and abs(yawdistance)<=0.05 and abs(pitchdistance)<=0.05):
+
+
+            self.reward+=1000
+            #self.reward+=1500*self.hitCounter
             #print('Hit asterioid...',self.hitCounter)
+        """
         if(self.currentaction==2):
-            self.reward-=0.75
+            self.reward-=0.5
 
 
         #if(abs(yawdistance)<=1):
-        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025)):
-            self.reward+=5
-            if(self.currentaction==2):
-                self.reward+=400
-        else:
-            self.reward-=(abs(yawdistance)*2)
-            self.reward-=(abs(pitchdistance)*2)
+        if((yawdistance==0.0 or abs(yawdistance)<=0.035) and (pitchdistance==0.0 or abs(pitchdistance)<=0.035)):
+            self.reward+=1.5
 
+        self.reward-=(abs(yawdistance))
+        self.reward-=(abs(pitchdistance))
+        if(abs(yawdistance)<=0.3 and abs(pitchdistance)<=0.3 and self.currentaction==2):
+            self.reward+=10
+        #if abs(yawdistance) < abs(self.previous_yawdistance):
+         #   self.reward += 0.11
+        #if abs(pitchdistance) < abs(self.previous_pitchdistance):
+         #   self.reward += 0.1
        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
         #    self.reward+=10
         #if(self.currentaction==2):
@@ -227,6 +258,7 @@ class GameEnv(gym.Env):
 
 
             if self.model and math.fmod(self.step_count,500)==0:
+                tf.summary.scalar("ent_coef", self.model.ent_coef , step=global_step)
                 tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
                 tf.summary.scalar("gamma", self.model.gamma , step=global_step)
 
@@ -248,9 +280,9 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                self.model.save(logname+"_EpisodeEnd")
+                #self.model.save(logname+"_EpisodeEnd")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                self.model.save(logname+"_short")
+                #self.model.save(logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -262,7 +294,6 @@ class GameEnv(gym.Env):
         self.previous_yawdistance=yawdistance
         self.previous_pitchdistance=pitchdistance
         #print(f"State: {self.state}, Predicted Action: {action}",self.reward)
-        self.ep_step+=1
         #self.done = False
         truncated = False
         info = {}
@@ -301,14 +332,17 @@ check_env(env)
 
 #Training functions
 def modelInit(env: GameEnv, modelName: str,  totalSteps: int, lr: float):
-    model = PPO("MultiInputPolicy", env, verbose=2, learning_rate=lr, clip_range=0.2, device="cuda")
+    model = PPO("MultiInputPolicy", env, verbose=2, learning_rate=lr, clip_range=0.22, device="cpu")
     env.setModel(model)
-    model.batch_size=128
+    model.batch_size=64
     model.n_steps=2048
     model.gae_lambda=0.95
-    model.gamma = 0.925
+    model.gamma = 0.975
     model.ent_coef=0.01
-    model.learn(total_timesteps=totalSteps, log_interval=1)
+
+    ent_coef_scheduler = EntCoefScheduler(initial_ent_coef=0.01, final_ent_coef=0, total_timesteps=totalSteps)
+
+    model.learn(total_timesteps=totalSteps, log_interval=1, callback=ent_coef_scheduler)
     model.save(modelName)
 
 """
@@ -340,13 +374,13 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
         while not done:
             action, _ = model.predict(state, deterministic=True)  # Deterministic mode for evaluation
             state, reward, done, truncated, info = env.step(action)
-            print(f"State: {state}, Predicted Action: {action}",reward)
+            #print(f"State: {state}, Predicted Action: {action}",reward)
             total_reward += reward
 
-        print(f"Episode {episode + 1}/{episodes}: Total Reward = {total_reward}")
+        #print(f"Episode {episode + 1}/{episodes}: Total Reward = {total_reward}")
 
 
 #Training:
-modelInit(env,logname,1000000,0.000285)
+modelInit(env,logname,1500000,0.000275)
 #modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 200000, 1)

@@ -15,7 +15,6 @@ from stable_baselines3.common.callbacks import BaseCallback
 from pydantic import BaseModel
 import httpx
 from tensorflow.python.eager.context import async_wait
-import optuna
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
 
@@ -26,7 +25,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v18_v2'
+logname='dqn_spaceship_asteroid_shot_DQN_vs_PPO-v3'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -311,13 +310,6 @@ check_env(env)
 
 
 #Training functions
-def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
-    model = DQN.load(modelName, env=env)
-    env.setModel(model)
-    model.exploration_initial_eps = exp
-    model.learn(total_timesteps=totalSteps, log_interval=5)
-    model.save(modelName)
-
 def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
     model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr, device="cuda")
     env.setModel(model)
@@ -365,8 +357,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 
 #Training:
-#modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.7,0.05,0.75,1000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+#modelInit(env,logname,0.8,0,0.7,1500000,0.000275)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
 modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 1000000, 1)
 
