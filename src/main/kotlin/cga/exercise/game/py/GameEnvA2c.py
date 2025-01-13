@@ -18,7 +18,7 @@ from tensorflow.python.eager.context import async_wait
 import optuna
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
-
+from stable_baselines3 import A2C
 maxScore = 15
 learningRate = 0.0001
 #learningRate = 0.00035
@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v18_v2'
+logname='A2C_spaceship_asteroid_shot_l_yaw_pitch_fix_v1'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -78,7 +78,7 @@ def sendAction(action):
             'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
             'hit': 1 if data.get('hit', False) else 0,
             'alive': 1 if data.get('alive', False) else 0
-    
+
         }
         #print('sended action...',action,"recived:",gameData)
         return gameData
@@ -128,9 +128,9 @@ class GameEnv(gym.Env):
             #    dtype=np.float32
             #),
             #'spaceship_rotation': spaces.Box(
-             #   low=np.array([rot_LOW, rot_LOW, rot_LOW]),
-              #  high=np.array([rot_HIGH, rot_HIGH, rot_HIGH]),
-               # dtype=np.float32
+            #   low=np.array([rot_LOW, rot_LOW, rot_LOW]),
+            #  high=np.array([rot_HIGH, rot_HIGH, rot_HIGH]),
+            # dtype=np.float32
             #),
             'pitch': spaces.Box(
                 low=np.array([rot_LOW]),
@@ -195,24 +195,24 @@ class GameEnv(gym.Env):
         if((yawdistance==0.0 or abs(yawdistance)<=0.035) and (pitchdistance==0.0 or abs(pitchdistance)<=0.035)):
             self.reward+=1
             #if(self.currentaction==2):
-                #self.reward+=100
-                #self.reward+=500 #PPO
+            #self.reward+=100
+            #self.reward+=500 #PPO
 
         self.reward-=(abs(yawdistance))
         self.reward-=(abs(pitchdistance))
         if(abs(yawdistance)<=0.035 and abs(pitchdistance)<=0.035 and self.currentaction==2):
             self.reward+=3
-        #if abs(yawdistance) < abs(self.previous_yawdistance):
-         #   self.reward += 0.11
-        #if abs(pitchdistance) < abs(self.previous_pitchdistance):
-         #   self.reward += 0.1
-       # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
+        if abs(yawdistance) < abs(self.previous_yawdistance):
+           self.reward += 0.11
+        if abs(pitchdistance) < abs(self.previous_pitchdistance):
+           self.reward += 0.1
+        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
         #    self.reward+=10
         #if(self.currentaction==2):
         #    self.reward+=3
         #else:
-         #   self.reward-=(abs(pitchdistance)*2)
-                #self.reward+=(abs(yawdistance)**-0.4)
+        #   self.reward-=(abs(pitchdistance)*2)
+        #self.reward+=(abs(yawdistance)**-0.4)
         """else:
             if(abs(yawdistance)>=3):
                 self.reward-=2
@@ -237,7 +237,7 @@ class GameEnv(gym.Env):
 
 
             if self.model and math.fmod(self.step_count,500)==0:
-                tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
+                #tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
                 tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
                 tf.summary.scalar("gamma", self.model.gamma , step=global_step)
 
@@ -259,9 +259,9 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                #self.model.save(logname+"_A")
+                self.model.save(logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                #self.model.save(logname+"_short")
+                self.model.save(logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -318,13 +318,26 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
     model.learn(total_timesteps=totalSteps, log_interval=5)
     model.save(modelName)
 
-def modelInit(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float,  totalSteps: int, lr: float):
-    model = DQN("MultiInputPolicy", env, verbose=2, exploration_initial_eps=expInit, exploration_final_eps=expFinal, exploration_fraction=expFrac, learning_rate=lr, device="cuda")
+def modelInit(env: GameEnv, modelName: str,  totalSteps: int, lr: float):
+    model = A2C("MultiInputPolicy", env, verbose=2, learning_rate=lr, device="cpu")
+    #model.use_sde=True
     env.setModel(model)
-    model.buffer_size = 1000000
-    model.batch_size=128
+    model.n_steps=5
+    #model.buffer_size = 1000000
+    #model.batch_size=64
     model.gamma = 0.95
-    model.tau=0.10
+    model.gae_lambda = 1.0
+    model.ent_coef = 0.0
+    model.vf_coef = 0.5
+    model.max_grad_norm = 0.5
+    model.rms_prop_eps = 1e-5
+    model.use_rms_prop = True
+    model.normalize_advantage = False
+    model.stats_window_size = 100
+    model.verbose = 0
+
+
+#model.tau=0.10
     model.learn(total_timesteps=totalSteps, log_interval=1)
     model.save(modelName)
 
@@ -355,7 +368,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
         while not done:
             # Ensure state is in the correct format for the model
-            action, _ = model.predict(state, deterministic=True)  # Deterministic mode for evaluation
+            action, _ = model.predict(state, deterministic=False)  # Deterministic mode for evaluation
             state, reward, done, truncated, info = env.step(action)
             print(f"State: {state}, Predicted Action: {action}",reward)
             # Accumulate rewards
@@ -366,7 +379,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-#modelInit(env,logname,0.7,0.05,0.75,1000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
-modelPredict(env,logname,1)
+modelInit(env,logname,1000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+#modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 1000000, 1)
 
