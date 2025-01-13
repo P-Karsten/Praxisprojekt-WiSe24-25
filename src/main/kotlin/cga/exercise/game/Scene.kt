@@ -28,6 +28,7 @@ import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL30.*
 import java.util.Random
+import kotlin.collections.ArrayList
 import kotlin.math.*
 import org.joml.Vector3f as Vector3f1
 
@@ -96,7 +97,26 @@ class Scene(private val window: GameWindow) {
     var laserDirY = 0f
     var laserDirTmpY = 0f
     var spaceshipPosOld = Vector3f1(0f,0f,0f)
+    val astSpawns = arrayOf(
+        Vector3f1(50f,10f,10f),
+        Vector3f1(10f,50f,-56f),
+        Vector3f1(20f,-30f,73f),
+        Vector3f1(-50f,10f,-75f),
+        Vector3f1(25f,-22f,26f),
+        Vector3f1(-90f,-87f,-29f),
+        Vector3f1(-50f,35f,10f),
+        Vector3f1(80f,-55f,-9f),
+        Vector3f1(-20f,34f,58f),
+        Vector3f1(65f,95f,21f),
+        Vector3f1(-15f,-76f,-34f),
+        Vector3f1(80f,12f,-79f),
+        Vector3f1(-33f,-66f,-2f),
+        Vector3f1(-95f,-81f,8f),
+        Vector3f1(20f,53f,26f),
+        Vector3f1(87f,-23f,66f)
+    )
 
+    var astSpawnCounter = 0
     var counter = 0
 
 
@@ -492,7 +512,7 @@ class Scene(private val window: GameWindow) {
 
         var yawdistance = yawDistance(yaw.toDouble(),spaceship.getRotation().y.toDouble())
         var pitchdistance= yawDistance(pitch.toDouble(),spaceship.getRotation().x.toDouble()-1.5707964f)
-        println(abs(pitchdistance)+abs(yawdistance))
+        //println(abs(pitchdistance)+abs(yawdistance))
         //ray.render(staticShader,Vector3f1(1f,1f,1f))
         //ray.parent = spaceship
         //ray.setRotation(0f,-yaw.toFloat()+1.5707f,pitch.toFloat())
@@ -522,6 +542,15 @@ class Scene(private val window: GameWindow) {
             spaceship.rotate(0f,0f,-spaceship.getRotation().z)
         else
             spaceship.rotate(0f,0f,abs(spaceship.getRotation().z))
+
+
+        /*if(ray.getRotation().x>0)
+            ray.rotate(-ray.getRotation().x,0f,0f)
+        else
+            ray.rotate(abs(spaceship.getRotation().x),0f,0f)
+        */
+
+        //spaceship.translate(Vector3f1(0f, 0f, speed))
         collisionCheckTimer += dt
         checkCollisionSpaceship()
 
@@ -708,7 +737,7 @@ class Scene(private val window: GameWindow) {
 
     
     private fun setSpaceshipPositionToStart() {
-
+        astSpawnCounter = 0
         counter = 0
         spaceship.cleanup()
         spaceship= ModelLoader.loadModel("assets/starsparrow/StarSparrow01.obj", 0f, Math.toRadians(180f), 0f)!!
@@ -732,7 +761,10 @@ class Scene(private val window: GameWindow) {
         var rendertemp = Renderable(mutableListOf(astmesh))
         var ascale=Random().nextFloat(6f,8f)
         rendertemp.scale(Vector3f1(ascale,ascale,ascale))
+
         rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+        //rendertemp.translate(astSpawns[0])
+
         asteroidlist2.add(rendertemp)
     }
 
@@ -760,6 +792,13 @@ class Scene(private val window: GameWindow) {
 
                 rendertemp.scale(Vector3f1(ascale,ascale,ascale))
                 rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+
+                //AstSpawnList conmparing models
+                astSpawnCounter++
+                //rendertemp.translate(astSpawns[astSpawnCounter])
+                //println("Ast number: " + astSpawnCounter + " spawned...")
+
+
                 asteroidlist2.add(rendertemp)
                 //setSpaceshipPositionToStart()
                 return true
