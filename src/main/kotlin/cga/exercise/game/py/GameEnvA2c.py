@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='A2C_spaceship_asteroid_shot_l_yaw_pitch_fix_v1'
+logname='A2C_spaceship_asteroid_shot_l_yaw_pitch_fix_v3_short'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -35,7 +35,18 @@ writer = tf.summary.create_file_writer(log_dir)
 #BACK = 2
 #FORWARD = 3
 #SHOOT = 4
-
+class EntCoefScheduler(BaseCallback):
+    def __init__(self, initial_ent_coef, final_ent_coef, total_timesteps, verbose=0):
+        super().__init__(verbose)
+        self.initial_ent_coef = initial_ent_coef
+        self.final_ent_coef = final_ent_coef
+        self.total_timesteps = total_timesteps
+    def _on_step(self) -> bool:
+        progress = self.num_timesteps / self.total_timesteps
+        current_ent_coef = self.initial_ent_coef - progress * (self.initial_ent_coef - self.final_ent_coef)
+        self.model.ent_coef = current_ent_coef
+        #print(f"Updated entropy coefficient: {current_ent_coef:.6f}")
+        return True
 #callback logging / console outputs after 10 episodes
 def normalize_angle(angle, range_start=-np.pi, range_end=np.pi):
     range_width = range_end - range_start
@@ -182,13 +193,13 @@ class GameEnv(gym.Env):
             self.reward += 50000000/((self.ep_step)**0.85)
         if(hit==1):
             self.hitCounter+=1
-            self.reward=10
+            self.reward=250
         if (hit == 1 and abs(yawdistance)<=0.05 and abs(pitchdistance)<=0.05):
             self.reward+=1000
             #self.reward+=1500*self.hitCounter
             #print('Hit asterioid...',self.hitCounter)
-        if(self.currentaction==2):
-            self.reward-=0.5
+        #if(self.currentaction==2):
+            #self.reward-=0.5
 
 
         #if(abs(yawdistance)<=1):
@@ -198,15 +209,15 @@ class GameEnv(gym.Env):
             #self.reward+=100
             #self.reward+=500 #PPO
 
-        self.reward-=(abs(yawdistance))
-        self.reward-=(abs(pitchdistance))
+        #self.reward-=(abs(yawdistance)/2)
+        #self.reward-=(abs(pitchdistance)/2)
         if(abs(yawdistance)<=0.035 and abs(pitchdistance)<=0.035 and self.currentaction==2):
             self.reward+=3
         if abs(yawdistance) < abs(self.previous_yawdistance):
            self.reward += 0.11
         if abs(pitchdistance) < abs(self.previous_pitchdistance):
            self.reward += 0.1
-        # if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
+        #if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
         #    self.reward+=10
         #if(self.currentaction==2):
         #    self.reward+=3
@@ -259,9 +270,9 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                self.model.save(logname+"_A")
+                #self.model.save(logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                self.model.save(logname+"_short")
+                #self.model.save(logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -319,26 +330,26 @@ def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
     model.save(modelName)
 
 def modelInit(env: GameEnv, modelName: str,  totalSteps: int, lr: float):
-    model = A2C("MultiInputPolicy", env, verbose=2, learning_rate=lr, device="cpu")
+    model = A2C("MultiInputPolicy", env, verbose=2,n_steps=60, learning_rate=lr, device="cpu")
     #model.use_sde=True
     env.setModel(model)
-    model.n_steps=5
-    #model.buffer_size = 1000000
-    #model.batch_size=64
+    #model.n_steps=10
+    #model.rollout_buffer = 1000000
+    model.buffer_size = 1000000
+    model.batch_size=128
     model.gamma = 0.95
-    model.gae_lambda = 1.0
-    model.ent_coef = 0.0
+    model.gae_lambda = 0.9
+    model.ent_coef = 0.01
     model.vf_coef = 0.5
     model.max_grad_norm = 0.5
     model.rms_prop_eps = 1e-5
     model.use_rms_prop = True
-    model.normalize_advantage = False
+    model.normalize_advantage = True
     model.stats_window_size = 100
-    model.verbose = 0
-
-
-#model.tau=0.10
-    model.learn(total_timesteps=totalSteps, log_interval=1)
+    model.verbose = 2
+    ent_coef_scheduler = EntCoefScheduler(initial_ent_coef=0.01, final_ent_coef=0, total_timesteps=totalSteps)
+    #model.tau=0.10
+    model.learn(total_timesteps=totalSteps, log_interval=1,callback=ent_coef_scheduler)
     model.save(modelName)
 
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
@@ -358,7 +369,7 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
 
 def modelPredict(env: GameEnv, modelName: str, episodes: int):
     # Load the trained model
-    model = DQN.load(modelName, env=env)
+    model = A2C.load(modelName, env=env)
     env.setModel(model)
 
     for episode in range(episodes):
@@ -368,7 +379,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
         while not done:
             # Ensure state is in the correct format for the model
-            action, _ = model.predict(state, deterministic=False)  # Deterministic mode for evaluation
+            action, _ = model.predict(state, deterministic=True)  # Deterministic mode for evaluation
             state, reward, done, truncated, info = env.step(action)
             print(f"State: {state}, Predicted Action: {action}",reward)
             # Accumulate rewards
@@ -379,7 +390,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 #Training:
 #modelInit(env,logname,0.8,0.1,0.5,500000,0.001)
-modelInit(env,logname,1000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
-#modelPredict(env,logname,1)
+#modelInit(env,logname,1000000,0.00025)#todo shoot reward based of combined distance
+modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 1000000, 1)
 
