@@ -113,7 +113,8 @@ class Scene(private val window: GameWindow) {
         Vector3f1(-33f,-66f,-2f),
         Vector3f1(-95f,-81f,8f),
         Vector3f1(20f,53f,26f),
-        Vector3f1(87f,-23f,66f)
+        Vector3f1(87f,-23f,66f),
+        Vector3f1(17f,33f,-26f)
     )
 
     var astSpawnCounter = 0
@@ -753,17 +754,17 @@ class Scene(private val window: GameWindow) {
         score=0f
         vmaxa=0.01f
         vmaxa2=0.0001f
-        spaceship.rotate(0.0f,Random().nextFloat(-3.141f,3.141f),0f)
+        //spaceship.rotate(0.0f,Random().nextFloat(-3.141f,3.141f),0f)
         println("reset........................................................................${spaceship.getRotation()}")
         cleanup()
         cAsteroid=Vector3f(10000f,10000f,10000f)
         astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
         var rendertemp = Renderable(mutableListOf(astmesh))
-        var ascale=Random().nextFloat(6f,8f)
+        var ascale=Random().nextFloat(7f,8f)
         rendertemp.scale(Vector3f1(ascale,ascale,ascale))
 
-        rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
-        //rendertemp.translate(astSpawns[0])
+        //rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+        rendertemp.translate(astSpawns[0])
 
         asteroidlist2.add(rendertemp)
     }
@@ -788,15 +789,15 @@ class Scene(private val window: GameWindow) {
                 var rendertemp = Renderable(mutableListOf(astmesh))
 
 
-                var ascale=Random().nextFloat(6f,10f)
+                var ascale=Random().nextFloat(7f,8f)
 
                 rendertemp.scale(Vector3f1(ascale,ascale,ascale))
-                rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+                //rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
 
                 //AstSpawnList conmparing models
                 astSpawnCounter++
-                //rendertemp.translate(astSpawns[astSpawnCounter])
-                //println("Ast number: " + astSpawnCounter + " spawned...")
+                rendertemp.translate(astSpawns[astSpawnCounter])
+                println("Ast number: " + astSpawnCounter + " spawned...at"+rendertemp.getPosition())
 
 
                 asteroidlist2.add(rendertemp)

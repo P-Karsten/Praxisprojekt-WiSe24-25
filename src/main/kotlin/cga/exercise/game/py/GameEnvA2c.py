@@ -26,9 +26,9 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='A2C_spaceship_asteroid_shot_l_yaw_pitch_fix_v3_short'
+logname='A2C_spaceship_asteroid_shot_l_yaw_pitch_fix_v3'
 apiURL = 'http://127.0.0.1:8000/'
-log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
+log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname+"test")
 writer = tf.summary.create_file_writer(log_dir)
 #RIGHT = 0
 #LEFT= 1
@@ -167,9 +167,9 @@ class GameEnv(gym.Env):
         self.model = model
 
     def step(self, action):
-
-        gameData = sendAction(self.currentaction)
         self.currentaction =action
+        gameData = sendAction(self.currentaction)
+
         hit = gameData['hit']
         alive = gameData['alive']
         self.reward_ep+=self.reward
@@ -368,7 +368,6 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         print("cycle start...",x)
 
 def modelPredict(env: GameEnv, modelName: str, episodes: int):
-    # Load the trained model
     model = A2C.load(modelName, env=env)
     env.setModel(model)
 
@@ -378,11 +377,9 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
         total_reward = 0
 
         while not done:
-            # Ensure state is in the correct format for the model
             action, _ = model.predict(state, deterministic=True)  # Deterministic mode for evaluation
             state, reward, done, truncated, info = env.step(action)
             print(f"State: {state}, Predicted Action: {action}",reward)
-            # Accumulate rewards
             total_reward += reward
 
         print(f"Episode {episode + 1}/{episodes}: Total Reward = {total_reward}")

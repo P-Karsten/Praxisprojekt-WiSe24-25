@@ -26,7 +26,7 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='PPO_vs_DQN_ModelPPO-aimFix-v3'
+logname='PPO_vs_DQN_ModelPPO-aimFix-v1'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
 writer = tf.summary.create_file_writer(log_dir)
@@ -381,6 +381,6 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 
 #Training:
-modelInit(env,logname,1500000,0.000275)
-#modelPredict(env,logname,1)
+#modelInit(env,logname,1500000,0.000275)
+modelPredict(env,logname,1)
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 200000, 1)
