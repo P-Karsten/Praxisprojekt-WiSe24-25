@@ -763,8 +763,8 @@ class Scene(private val window: GameWindow) {
         var ascale=Random().nextFloat(7f,8f)
         rendertemp.scale(Vector3f1(ascale,ascale,ascale))
 
-        //rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
-        rendertemp.translate(astSpawns[0])
+        rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+        //rendertemp.translate(astSpawns[0])
 
         asteroidlist2.add(rendertemp)
     }
@@ -792,11 +792,11 @@ class Scene(private val window: GameWindow) {
                 var ascale=Random().nextFloat(7f,8f)
 
                 rendertemp.scale(Vector3f1(ascale,ascale,ascale))
-                //rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
+                rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
 
                 //AstSpawnList conmparing models
                 astSpawnCounter++
-                rendertemp.translate(astSpawns[astSpawnCounter])
+                //rendertemp.translate(astSpawns[astSpawnCounter])
                 println("Ast number: " + astSpawnCounter + " spawned...at"+rendertemp.getPosition())
 
 

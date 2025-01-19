@@ -28,7 +28,7 @@ saveInterval = 100000
 max_stepsEpisode = 10000
 logname='PPO_vs_DQN_ModelPPO-aimFix-v1'
 apiURL = 'http://127.0.0.1:8000/'
-log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname)
+log_dir = "logs/game_rewards/"+logname+"/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S")
 writer = tf.summary.create_file_writer(log_dir)
 #RIGHT = 0
 #LEFT= 1
@@ -280,9 +280,9 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                #self.model.save(logname+"_EpisodeEnd")
+                #self.model.save("PPO/"+logname+"_EpisodeEnd")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                #self.model.save(logname+"_short")
+                #self.model.save("PPO"+logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -343,13 +343,13 @@ def modelInit(env: GameEnv, modelName: str,  totalSteps: int, lr: float):
     ent_coef_scheduler = EntCoefScheduler(initial_ent_coef=0.01, final_ent_coef=0, total_timesteps=totalSteps)
 
     model.learn(total_timesteps=totalSteps, log_interval=1, callback=ent_coef_scheduler)
-    model.save(modelName)
+    model.save("PPO/"+modelName)
 
 """
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
     x = 0
     while x < cycles:
-        model = PPO.load(modelName, env=env, device='cuda')
+        model = PPO.load("PPO/"+modelName, env=env, device='cuda')
         env.setModel(model)
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
@@ -357,13 +357,13 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         model.buffer_size = 500000
         model.learn(total_timesteps=totalSteps, log_interval=1)
         print('Model saved...')
-        model.save(modelName)
+        model.save("PPO/"+modelName)
         x += 1
         print("cycle start...",x)
 """
 
 def modelPredict(env: GameEnv, modelName: str, episodes: int):
-    model = PPO.load(modelName, env=env)
+    model = PPO.load("PPO/"+modelName, env=env)
     env.setModel(model)
 
     for episode in range(episodes):

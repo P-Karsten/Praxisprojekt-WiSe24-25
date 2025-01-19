@@ -28,7 +28,7 @@ saveInterval = 100000
 max_stepsEpisode = 10000
 logname='A2C_spaceship_asteroid_shot_l_yaw_pitch_fix_v3'
 apiURL = 'http://127.0.0.1:8000/'
-log_dir = "logs/game_rewards/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S_ "+logname+"test")
+log_dir = "logs/game_rewards/"+logname+"/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S")
 writer = tf.summary.create_file_writer(log_dir)
 #RIGHT = 0
 #LEFT= 1
@@ -270,9 +270,9 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                #self.model.save(logname+"_A")
+                self.model.save("A2C/"+logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                #self.model.save(logname+"_short")
+                self.model.save("A2C/"+logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -323,11 +323,11 @@ check_env(env)
 
 #Training functions
 def modelTrain(env: GameEnv, modelName: str, exp: float, totalSteps: int):
-    model = DQN.load(modelName, env=env)
+    model = A2C.load("A2C/"+modelName, env=env)
     env.setModel(model)
     model.exploration_initial_eps = exp
     model.learn(total_timesteps=totalSteps, log_interval=5)
-    model.save(modelName)
+    model.save("A2C/"+modelName)
 
 def modelInit(env: GameEnv, modelName: str,  totalSteps: int, lr: float):
     model = A2C("MultiInputPolicy", env, verbose=2,n_steps=60, learning_rate=lr, device="cpu")
@@ -350,12 +350,12 @@ def modelInit(env: GameEnv, modelName: str,  totalSteps: int, lr: float):
     ent_coef_scheduler = EntCoefScheduler(initial_ent_coef=0.01, final_ent_coef=0, total_timesteps=totalSteps)
     #model.tau=0.10
     model.learn(total_timesteps=totalSteps, log_interval=1,callback=ent_coef_scheduler)
-    model.save(modelName)
+    model.save("A2C/"+modelName)
 
 def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: float, expFrac: float, totalSteps: int, cycles: int):
     x = 0
     while x < cycles:
-        model = DQN.load(modelName, env=env, device='cuda')
+        model = DQN.load("A2C/"+modelName, env=env, device='cuda')
         env.setModel(model)
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
@@ -363,12 +363,12 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         model.buffer_size = 1000000
         model.learn(total_timesteps=totalSteps, log_interval=1)
         print('Model saved...')
-        model.save(modelName)
+        model.save("A2C/"+modelName)
         x += 1
         print("cycle start...",x)
 
 def modelPredict(env: GameEnv, modelName: str, episodes: int):
-    model = A2C.load(modelName, env=env)
+    model = A2C.load("A2C/"+modelName, env=env)
     env.setModel(model)
 
     for episode in range(episodes):
