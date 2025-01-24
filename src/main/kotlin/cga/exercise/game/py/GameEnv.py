@@ -58,7 +58,8 @@ class gameData: {
     'pitch': np.zeros(1, dtype=np.float32),
     'yaw': np.zeros(1, dtype=np.float32),
     'hit': False,
-    'alive': True
+    'alive': True,
+    'counter':np.zeros(1, dtype=np.float32)
 }
 
 client=httpx.Client(http2=True)
@@ -76,7 +77,8 @@ def sendAction(action):
             'pitch':np.array([data.get('pitch',0)],dtype=np.float32),
             'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
             'hit': 1 if data.get('hit', False) else 0,
-            'alive': 1 if data.get('alive', False) else 0
+            'alive': 1 if data.get('alive', False) else 0,
+            'counter':data.get('counter',0)
     
         }
         #print('sended action...',action,"recived:",gameData)
@@ -88,7 +90,7 @@ def sendAction(action):
             #'spaceship_rotation': np.zeros(3, dtype=np.float32),
             'pitch':np.zeros(1, dtype=np.float32),
             'yaw':np.zeros(1, dtype=np.float32),
-            'hit': 0,
+            'hit':0,
             'alive': 1,
         }
 
@@ -109,6 +111,8 @@ class GameEnv(gym.Env):
         rot_LOW = np.float32(-np.pi)
         rot_HIGH = np.float32(np.pi)
         self.currentaction=10
+        self.hit=0
+        self.prevhit=0
         self.a0=0
         self.a1=0
         self.a2=0
@@ -157,9 +161,10 @@ class GameEnv(gym.Env):
         self.model = model
 
     def step(self, action):
-        self.currentaction =action
+
         gameData = sendAction(self.currentaction)
-        hit = gameData['hit']
+        self.currentaction =action
+        hit = gameData['counter']
         alive = gameData['alive']
         self.reward_ep+=self.reward
         self.reward=0
@@ -167,28 +172,30 @@ class GameEnv(gym.Env):
             #'spaceship_rotation':gameData['spaceship_rotation'],
             'pitch': gameData['pitch'],
             'yaw': gameData['yaw'],
-            'hit': gameData['hit'],
+            'hit': int(gameData['hit']),
             'alive': gameData['alive']
         }
         yawdistance = gameData['yaw'].item()
         pitchdistance = gameData['pitch'].item()
-        #print(pitchdistance)
+        #print(gameData['hit'])
         self.reward-=0.25
         if (alive == 0):
             self.reward -= 5000
             #print('dead...')
 
-        if (self.hitCounter >= maxScore):
+        if (hit >= maxScore):
             self.reward += 50000000/((self.ep_step)**0.85)
-        if(hit==1):
+        if (hit > self.prevhit and abs(yawdistance)<=0.03 and abs(pitchdistance)<=0.03):
+            self.reward+=500
+        if(hit>self.prevhit):
             self.hitCounter+=1
-            self.reward=50
-        if (hit == 1 and abs(yawdistance)<=0.05 and abs(pitchdistance)<=0.05):
-            self.reward+=250
+            self.reward=100
+            self.prevhit=hit
+
             #self.reward+=1500*self.hitCounter
             #print('Hit asterioid...',self.hitCounter)
-        #if(self.currentaction==2):
-            #self.reward-=0.2
+        if(self.currentaction==2):
+            self.reward-=0.15
 
 
         #if(abs(yawdistance)<=1):
@@ -203,12 +210,12 @@ class GameEnv(gym.Env):
         if(abs(yawdistance)<=0.025 and abs(pitchdistance)<=0.025 and self.currentaction==2):
             self.reward+=3
         if abs(yawdistance) < abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01:
-            self.reward += 0.1
+            self.reward += 0.11
             #print("yaw before",(abs(self.previous_yawdistance),abs(yawdistance)))
         if abs(pitchdistance) < abs(self.previous_pitchdistance) and (self.currentaction==3 or self.currentaction==4)and abs(pitchdistance)>0.01:
-            self.reward += 0.1
+            self.reward += 0.11
             #print("pitch before",(abs(self.previous_pitchdistance),abs(pitchdistance)))
-        if abs(yawdistance) > abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01:
+        if abs(yawdistance) > abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01 :
             self.reward -= 0.1
             #print("yaw before",(abs(self.previous_yawdistance),abs(yawdistance)))
         if abs(pitchdistance) > abs(self.previous_pitchdistance) and (self.currentaction==3 or self.currentaction==4)and abs(pitchdistance)>0.01:
@@ -244,10 +251,10 @@ class GameEnv(gym.Env):
             tf.summary.scalar("_reward", self.reward_ep, step=global_step)
 
 
-        if self.model and math.fmod(self.step_count,500)==0:
-            tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
-            tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
-            tf.summary.scalar("gamma", self.model.gamma , step=global_step)
+            if self.model and math.fmod(self.step_count,500)==0:
+                tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
+                tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
+                tf.summary.scalar("gamma", self.model.gamma , step=global_step)
 
 
 
@@ -267,9 +274,9 @@ class GameEnv(gym.Env):
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                self.model.save("DQN/"+logname+"_A")
+                #self.model.save("DQN/"+logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                self.model.save("DQN/"+logname+"_short")
+                #self.model.save("DQN/"+logname+"_short")
                 self.short_ep=self.ep_step
                 print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
@@ -290,6 +297,7 @@ class GameEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         self.hitCounter = 0
+        self.prevhit=0
         self.reward = 0
         gameData = sendAction(10)
         self.state={
@@ -364,7 +372,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 
 #Training:
-#modelInit(env,logname,0.4,0,0.8,1000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
-modelPredict(env,logname,1)
+#modelInit(env,logname,0.4,0,0.8,500000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+modelPredict(env,logname,1)#todo nach 1 score interrate all asteroidlist2 yaw and pitch dis smallest next
 #modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 1000000, 1)
 

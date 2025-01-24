@@ -45,18 +45,24 @@ class Scene(private val window: GameWindow) {
     private var camera_fp: TronCamera
     var astmesh: Mesh
     var vmaxa=0.01f
+    var prevleng=10000f
     var vmaxa2=0.002f
     var score =0f
     var pause =true
     var rayl= 0
+    var shortyaw=10f
+    var shortpitch=10f
     var inputkey= ""
     var cAsteroid=Vector3f(10000f,10000f,10000f)
+    var cdasteroid=Vector3f(10000f,10000f,10000f)
     var sendcd =0
     var speed = -0.1f
     var shoot =false
     var cammode =0f
     var camselect=0f
     var tempshader=1f
+    var hit=false
+    var previousdis=java.lang.Math.PI*2
     var asteroidlist = mutableListOf<Renderable>()
     var asteroidlist2 = mutableListOf<Renderable>()
     var meshlist = mutableListOf<Mesh>()
@@ -154,7 +160,7 @@ class Scene(private val window: GameWindow) {
         val yaw : Float,
         val hit: Boolean,
         val alive: Boolean,
-        val hitsCounter: Int,
+        val counter: Float,
 
 
     )
@@ -167,7 +173,7 @@ class Scene(private val window: GameWindow) {
         yaw : Float,
         hit: Boolean,
         alive: Boolean,
-        hitsCounter: Int
+        counter: Float
 
     ) {                             //rotation spaceship
         val data = GameData(
@@ -176,7 +182,7 @@ class Scene(private val window: GameWindow) {
             yaw = yaw,
             hit = hit,
             alive = alive,
-            hitsCounter = hitsCounter
+            counter = counter
         )
         gameDataset.add(data)
 
@@ -202,12 +208,12 @@ class Scene(private val window: GameWindow) {
                 }.body() // Extract the response body as GameData
 
 
-                //println("POST Response: ${postResponse}"
+                println("POST Response: ${postResponse}")
                 action = postResponse.action
                 //println(dataToSend.spaceshipRotation.y)
 
             } catch (e: Exception) {
-                //println("Error sending request: ${e.localizedMessage}")
+                println("Error sending request: ${e.localizedMessage}")
             } finally {
                 // Close the client after use
                 client.close()
@@ -495,9 +501,50 @@ class Scene(private val window: GameWindow) {
             pointLight = PointLight(Vector3f1(0f, 5f, 0f), Vector3f1(0.11f, 0.11f, 0.11f))
             pointLight.parent = spaceship
         }
-        if(spaceship.getWorldPosition().x>=1800f||spaceship.getWorldPosition().y>=1800f||spaceship.getWorldPosition().z>=1800f||spaceship.getWorldPosition().x<=-1800f||spaceship.getWorldPosition().y<=-1800f||spaceship.getWorldPosition().z<=-1800f) {
-            setSpaceshipPositionToStart()
+
+        for(i in 0 .. asteroidlist2.lastIndex) {
+
+
+            var direction = Vector3f1(
+                asteroidlist2[i].getWorldPosition().x - spaceship.getWorldPosition().x.toFloat(),
+                asteroidlist2[i].getWorldPosition().y- spaceship.getWorldPosition().y.toFloat(),
+                asteroidlist2[i].getWorldPosition().z - spaceship.getWorldPosition().z.toFloat()
+            )
+            val directionLocal = spaceship.transformToLocal(direction)
+            directionLocal.normalize()
+            val yaw = atan2(directionLocal.x, -directionLocal.z)
+            val pitch = atan2(directionLocal.y, sqrt(directionLocal.x * directionLocal.x + directionLocal.z * directionLocal.z))
+
+            var yawdistances = yawDistance(yaw.toDouble(),spaceship.getRotation().y.toDouble())
+            var pitchdistances= yawDistance(pitch.toDouble(),spaceship.getRotation().x.toDouble()-1.5707964f)
+
+            if (abs(yawdistances)+abs(pitchdistances)< previousdis||50>spaceship.getWorldPosition().distance(asteroidlist2[i].getWorldPosition())) {
+                previousdis = abs(yawdistances) + abs(pitchdistances)
+                cdasteroid = Scene.Vector3f(
+                    asteroidlist2[i].getWorldPosition().x,
+                    asteroidlist2[i].getWorldPosition().y,
+                    asteroidlist2[i].getWorldPosition().z
+                )
+                shortyaw=yawdistances.toFloat()
+                shortpitch=pitchdistances.toFloat()
+
+                if(spaceship.getWorldPosition().distance(asteroidlist2[i].getWorldPosition())<50 && spaceship.getWorldPosition().distance(asteroidlist2[i].getWorldPosition())<prevleng)
+                {
+                    cdasteroid = Scene.Vector3f(
+                        asteroidlist2[i].getWorldPosition().x,
+                        asteroidlist2[i].getWorldPosition().y,
+                        asteroidlist2[i].getWorldPosition().z
+                    )
+                    prevleng=spaceship.getWorldPosition().distance(asteroidlist2[i].getWorldPosition())
+                    shortyaw=yawdistances.toFloat()
+                    shortpitch=pitchdistances.toFloat()
+                    break
+                }
+            }
+
         }
+
+
         var direction=Vector3f1(cAsteroid.x-spaceship.getWorldPosition().x.toFloat() , cAsteroid.y-spaceship.getWorldPosition().y.toFloat() ,cAsteroid.z-spaceship.getWorldPosition().z.toFloat())
         val directionLocal = spaceship.transformToLocal(direction)
         directionLocal.normalize()
@@ -507,20 +554,25 @@ class Scene(private val window: GameWindow) {
         var alive = checkCollisionSpaceship()
 
 
-        if (hit) {
-            counter++
-        }
+        //if (hit) {
+          //  counter++
+        //}
 
         var yawdistance = yawDistance(yaw.toDouble(),spaceship.getRotation().y.toDouble())
         var pitchdistance= yawDistance(pitch.toDouble(),spaceship.getRotation().x.toDouble()-1.5707964f)
-        //println(abs(pitchdistance)+abs(yawdistance))
+        //println(pitchdistance)
         //ray.render(staticShader,Vector3f1(1f,1f,1f))
         //ray.parent = spaceship
         //ray.setRotation(0f,-yaw.toFloat()+1.5707f,pitch.toFloat())
         //spaceship.setRotation(pitch.toFloat(),yaw.toFloat(),0f)
         //ray.setRotation(0f,-spaceship.getRotation().y-1.5707964f,-spaceship.getRotation().x+1.570796f)
-        collectData(Vector3f1(spaceship.getRotation().x,spaceship.getRotation().y,spaceship.getRotation().z),pitchdistance.toFloat(), yawdistance.toFloat(), hit, alive, counter)//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
+        println("yaw"+shortyaw+"pit"+shortpitch+"  leng"+prevleng+" count "+counter)
+        collectData(Vector3f1(spaceship.getRotation().x,spaceship.getRotation().y,spaceship.getRotation().z),shortpitch.toFloat(), shortyaw.toFloat(), hit, alive,counter.toFloat())//score,ChronoUnit.MILLIS.between(starttime,LocalDateTime.now())/1000f)
         testapi()
+        previousdis=java.lang.Math.PI*2
+        if(counter>=15)
+            setSpaceshipPositionToStart()
+
     }
 
 
@@ -538,7 +590,6 @@ class Scene(private val window: GameWindow) {
             10 -> setSpaceshipPositionToStart()                    //Game reset
         }
 
-        action=11
         if(spaceship.getRotation().z>0)
             spaceship.rotate(0f,0f,-spaceship.getRotation().z)
         else
@@ -555,14 +606,17 @@ class Scene(private val window: GameWindow) {
         collisionCheckTimer += dt
         checkCollisionSpaceship()
 
-        if(shoot==true)
-            checkCollisionAsteroid()
+
+        //if(shoot==true)
+            //checkCollisionAsteroid()
         if (collisionCheckTimer >= collisionCheckInterval) {
             checkCollisionSpaceship()
-            if(shoot==true)
-            checkCollisionAsteroid()
+            //if(shoot==true)
+            //checkCollisionAsteroid()
             collisionCheckTimer = 0f // Setze den Timer zurück
         }
+
+        action=11
 
         if (window.getKeyState(GLFW_KEY_O) == true) {
             action =10
@@ -714,6 +768,8 @@ class Scene(private val window: GameWindow) {
                 cAsteroid.y = asteroidPosition.y+3
                 cAsteroid.z = asteroidPosition.z
             }
+
+
         }
         return true
 
@@ -758,6 +814,9 @@ class Scene(private val window: GameWindow) {
         println("reset........................................................................${spaceship.getRotation()}")
         cleanup()
         cAsteroid=Vector3f(10000f,10000f,10000f)
+        cdasteroid=Vector3f(10000f,10000f,10000f)
+        previousdis=Math.PI*2
+        prevleng=10000f
         astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
         var rendertemp = Renderable(mutableListOf(astmesh))
         var ascale=Random().nextFloat(7f,8f)
@@ -765,8 +824,26 @@ class Scene(private val window: GameWindow) {
 
         rendertemp.translate(Vector3f1(Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f),Random().nextFloat(-100f,100f)))
         //rendertemp.translate(astSpawns[0])
-
         asteroidlist2.add(rendertemp)
+
+        for(i in 1..15)//random asteroid spawn
+        {
+            astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
+            var ascale=7f
+            var rendertemp = Renderable(mutableListOf(astmesh))
+            rendertemp.scale(Vector3f1(ascale,ascale,ascale))
+            rendertemp.translate(Vector3f1(Random().nextFloat(-120f,120f),Random().nextFloat(-120f,120f),Random().nextFloat(-120f,120f)))
+            asteroidlist2.add(rendertemp)
+        }
+        /*for(i in 1..15)//set asteroid spawn
+        {
+            astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
+            var ascale=7f
+            var rendertemp = Renderable(mutableListOf(astmesh))
+            rendertemp.scale(Vector3f1(ascale,ascale,ascale))
+            rendertemp.translate(astSpawns[i])
+            asteroidlist2.add(rendertemp)
+        }*/
     }
 
     private fun checkCollisionAsteroid(): Boolean {
@@ -784,6 +861,9 @@ class Scene(private val window: GameWindow) {
 
                 iterator2.remove()
                 cAsteroid=Vector3f(10000f,10000f,10000f)
+                cdasteroid=Vector3f(10000f,10000f,10000f)
+                previousdis=Math.PI*2
+                prevleng=10000f
                 score+=500f
                 astmesh= Mesh(astobj.objects[0].meshes[0].vertexData,astobj.objects[0].meshes[0].indexData,vertexAttributes,astmat)
                 var rendertemp = Renderable(mutableListOf(astmesh))
@@ -796,10 +876,11 @@ class Scene(private val window: GameWindow) {
 
                 //AstSpawnList conmparing models
                 astSpawnCounter++
+                counter++
                 //rendertemp.translate(astSpawns[astSpawnCounter])
                 println("Ast number: " + astSpawnCounter + " spawned...at"+rendertemp.getPosition())
 
-
+                //hit =true
                 asteroidlist2.add(rendertemp)
                 //setSpaceshipPositionToStart()
                 return true
@@ -850,6 +931,7 @@ class Scene(private val window: GameWindow) {
     fun cleanup() {
         for (asteroid in asteroidlist) {
             asteroid.cleanup()
+
             cAsteroid=Vector3f(10000f,10000f,10000f)
         }
         for (asteroid in asteroidlist2) {
