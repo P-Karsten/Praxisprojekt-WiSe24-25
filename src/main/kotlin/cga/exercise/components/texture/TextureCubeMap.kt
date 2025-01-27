@@ -1,5 +1,6 @@
 package cga.exercise.components.texture
 
+import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.opengl.GL13.*
 import org.lwjgl.opengl.GL30.*
@@ -47,6 +48,10 @@ class TextureCubeMap(
     fun bind(textureUnit: Int) {
         glActiveTexture(GL_TEXTURE0 + textureUnit)
         glBindTexture(GL_TEXTURE_CUBE_MAP, texID)
+    }
+
+    fun unbind() {
+        GL11.glBindTexture(GL_TEXTURE_CUBE_MAP, 0)
     }
 
     private data class ImageData(val data: ByteBuffer, val width: Int, val height: Int)

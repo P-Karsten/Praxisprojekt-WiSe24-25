@@ -14,7 +14,12 @@ from stable_baselines3.common.logger import configure
 from stable_baselines3.common.callbacks import BaseCallback
 from pydantic import BaseModel
 import httpx
+import matplotlib.pyplot as plt
+import io
 from tensorflow.python.eager.context import async_wait
+import graphics as Graphics
+import psutil
+import ram as Ram
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
 predictv=True
@@ -25,16 +30,15 @@ timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_l_yaw_pitch_fix_v24'
+logname='dqn_spaceship_asteroid_shot_FinalGame-v12'
 apiURL = 'http://127.0.0.1:8000/'
-log_dir = "logs/game_rewards/"+logname+"/" + datetime.datetime.now().strftime("%Y%m%d-%H_%M_%S")
+log_dir = "logs/game_rewards/"+logname+"/" + datetime.datetime.now().strftime("%d.%m.%Y--%H_%M_%S")
 writer = tf.summary.create_file_writer(log_dir)
 #RIGHT = 0
 #LEFT= 1
 #BACK = 2
 #FORWARD = 3
 #SHOOT = 4
-
 
 def normalize_angle(angle, range_start=-np.pi, range_end=np.pi):
     range_width = range_end - range_start
@@ -55,11 +59,11 @@ def yaw_distance(yaw1, yaw2):
 class gameData: {
     #'spaceship_position': np.zeros(3, dtype=np.float32),
     #'spaceship_rotation': np.zeros(3, dtype=np.float32),
+    'posDistance': np.zeros(1, dtype=np.float32),
     'pitch': np.zeros(1, dtype=np.float32),
     'yaw': np.zeros(1, dtype=np.float32),
-    'hit': False,
-    'alive': True,
-    'counter':np.zeros(1, dtype=np.float32)
+    'hit': np.zeros(1, dtype=np.float32),
+    'alive': True
 }
 
 client=httpx.Client(http2=True)
@@ -74,12 +78,11 @@ def sendAction(action):
         gameData = {
             #'spaceship_position':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
             #'spaceship_rotation':np.array(data.get('spaceshipPosition',[0,0,0]), dtype=np.float32),
+            'posDistance': np.array([data.get('posDistance',0)],dtype=np.float32),
             'pitch':np.array([data.get('pitch',0)],dtype=np.float32),
             'yaw':np.array([data.get('yaw',0)],dtype=np.float32),
-            'hit': 1 if data.get('hit', False) else 0,
-            'alive': 1 if data.get('alive', False) else 0,
-            'counter':data.get('counter',0)
-    
+            'hit': np.array([data.get('counter',0)],dtype=np.float32),
+            'alive': 1 if data.get('alive', False) else 0
         }
         #print('sended action...',action,"recived:",gameData)
         return gameData
@@ -88,9 +91,10 @@ def sendAction(action):
         return {
             #'spaceship_position': np.zeros(3, dtype=np.float32),
             #'spaceship_rotation': np.zeros(3, dtype=np.float32),
+            'posDistance': np.zeros(1, dtype=np.float32),
             'pitch':np.zeros(1, dtype=np.float32),
             'yaw':np.zeros(1, dtype=np.float32),
-            'hit':0,
+            'hit': np.zeros(1, dtype=np.float32),
             'alive': 1,
         }
 
@@ -118,12 +122,25 @@ class GameEnv(gym.Env):
         self.a2=0
         self.a3=0
         self.a4=0
+        self.a5=0
+        self.a6=0
+
+        #Reward stats
+        self.reward_shot=0
+        self.reward_aim=0
+        self.reward_w=0
+        self.reward_s=0
+        self.reward_death=0
+        self.reward_hits=0
+        self.reward_goal=0
+        self.reward_exist=0
+
         self.previous_yawdistance =3.14
         self.previous_pitchdistance=3.14
         self.model = None
         self.hitCounter = 0
         # W, A, S, D, P (shift)
-        self.action_space = spaces.Discrete(5)
+        self.action_space = spaces.Discrete(7)
 
         # spaceship pos, next asteroid pos, spaceship rotation
         self.observation_space = spaces.Dict({
@@ -137,6 +154,11 @@ class GameEnv(gym.Env):
               #  high=np.array([rot_HIGH, rot_HIGH, rot_HIGH]),
                # dtype=np.float32
             #),
+            'posDistance': spaces.Box(
+                low=np.array([pos_LOW]),
+                high=np.array([pos_HIGH]),
+                dtype=np.float32
+            ),
             'pitch': spaces.Box(
                 low=np.array([rot_LOW]),
                 high=np.array([rot_HIGH]),
@@ -147,9 +169,14 @@ class GameEnv(gym.Env):
                 high=np.array([rot_HIGH]),
                 dtype=np.float32
             ),
+            'hit': spaces.Box(
+                low=np.array([0]),
+                high=np.array([maxScore]),
+                dtype=np.float32
+            ),
             #0 false 1 true
-            'hit': spaces.Discrete(2),
-            'alive': spaces.Discrete(2)
+            #'hit': spaces.Discrete(2),
+            'alive': spaces.Discrete(2),
         })
 
         # inital state
@@ -161,79 +188,83 @@ class GameEnv(gym.Env):
         self.model = model
 
     def step(self, action):
-
         gameData = sendAction(self.currentaction)
-        self.currentaction =action
-        hit = gameData['counter']
+        self.currentaction=action
+        hit = gameData['hit']
         alive = gameData['alive']
         self.reward_ep+=self.reward
         self.reward=0
         self.state = {
-            #'spaceship_rotation':gameData['spaceship_rotation'],
+            'posDistance': gameData['posDistance'],
             'pitch': gameData['pitch'],
             'yaw': gameData['yaw'],
-            'hit': int(gameData['hit']),
+            'hit': gameData['hit'],
             'alive': gameData['alive']
         }
         yawdistance = gameData['yaw'].item()
         pitchdistance = gameData['pitch'].item()
-        #print(gameData['hit'])
-        self.reward-=0.25
-        if (alive == 0):
-            self.reward -= 5000
-            #print('dead...')
+        astDistance = gameData['posDistance']
 
-        if (hit >= maxScore):
+        #print(astDistance)
+        self.reward-=3
+        self.reward_exist-=3
+        if (alive == 0):
+            self.reward -= 1000
+            self.reward_death -= 1000
+        if (self.hit >= maxScore):
             self.reward += 50000000/((self.ep_step)**0.85)
-        if (hit > self.prevhit and abs(yawdistance)<=0.03 and abs(pitchdistance)<=0.03):
-            self.reward+=500
+            self.reward_goal += 50000000/((self.ep_step)**0.85)
+
+        if(hit > self.prevhit and abs(yawdistance)<=0.03 and abs(pitchdistance)<=0.03):
+            self.reward+=20
+            self.reward_hits+=20
+
         if(hit>self.prevhit):
             self.hitCounter+=1
-            self.reward=100
+            self.reward+=5
+            self.reward_hits+=5
             self.prevhit=hit
 
-            #self.reward+=1500*self.hitCounter
-            #print('Hit asterioid...',self.hitCounter)
-        if(self.currentaction==2):
-            self.reward-=0.15
-
-
-        #if(abs(yawdistance)<=1):
         if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025)):
-            self.reward+=1
-            #if(self.currentaction==2):
-                #self.reward+=100
-                #self.reward+=500 #PPO
+            self.reward+=1.5
+            self.reward_aim+=1.5
 
-        #self.reward-=(abs(yawdistance))
-        #self.reward-=(abs(pitchdistance))
-        if(abs(yawdistance)<=0.025 and abs(pitchdistance)<=0.025 and self.currentaction==2):
-            self.reward+=3
+        if((yawdistance==0.0 or abs(yawdistance)<=0.075) and (pitchdistance==0.0 or abs(pitchdistance)<=0.075)):
+            if(astDistance <= 300 and self.currentaction==5):
+                self.reward+=0.1
+                self.reward_s+=0.1
+            if(astDistance >= 600 and self.currentaction==5):
+                self.reward-=0.2
+                self.reward_s-=0.2
+            if(astDistance >= 600 and self.currentaction==6):
+                self.reward+=0.1
+                self.reward_w+=0.1
+            if(astDistance <= 300 and self.currentaction==6):
+                self.reward-=0.2
+                self.reward_w-=0.2
+
+
+        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025) and astDistance<=800 and self.currentaction==2):
+            self.reward+=500
+            self.reward_shot+=500
+        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025) and astDistance>=800 and self.currentaction==2):
+            self.reward-=15
+            self.reward_shot-=15
         if abs(yawdistance) < abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01:
             self.reward += 0.11
+            self.reward_aim += 0.11
             #print("yaw before",(abs(self.previous_yawdistance),abs(yawdistance)))
         if abs(pitchdistance) < abs(self.previous_pitchdistance) and (self.currentaction==3 or self.currentaction==4)and abs(pitchdistance)>0.01:
             self.reward += 0.11
+            self.reward_aim += 0.11
             #print("pitch before",(abs(self.previous_pitchdistance),abs(pitchdistance)))
-        if abs(yawdistance) > abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01 :
+        if abs(yawdistance) > abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01:
             self.reward -= 0.1
+            self.reward_aim -= 0.1
             #print("yaw before",(abs(self.previous_yawdistance),abs(yawdistance)))
         if abs(pitchdistance) > abs(self.previous_pitchdistance) and (self.currentaction==3 or self.currentaction==4)and abs(pitchdistance)>0.01:
             self.reward -= 0.1
-            #print("pitch before",(abs(self.previous_pitchdistance),abs(pitchdistance)))
-        #if(pitchdistance==0.0 or abs(pitchdistance)<=0.025):
-        #    self.reward+=10
-        #if(self.currentaction==2):
-        #    self.reward+=3
-        #else:
-         #   self.reward-=(abs(pitchdistance)*2)
-                #self.reward+=(abs(yawdistance)**-0.4)
-        """else:
-            if(abs(yawdistance)>=3):
-                self.reward-=2
-            else:
-                self.reward-=2*(abs(yawdistance)**0.5-1)"""
-
+            self.reward_aim -= 0.1
 
         if(self.currentaction==0):
             self.a0+=1
@@ -245,40 +276,82 @@ class GameEnv(gym.Env):
             self.a3+=1
         if(self.currentaction==4):
             self.a4+=1
+        if(self.currentaction==5):
+            self.a5+=1
+        if(self.currentaction==6):
+            self.a6+=1
         global_step = getattr(self, "step_count", 0)
         self.step_count = global_step + 1
         with writer.as_default():
-            tf.summary.scalar("_reward", self.reward_ep, step=global_step)
-
-
+            tf.summary.scalar("Reward", self.reward_ep, step=global_step)
             if self.model and math.fmod(self.step_count,500)==0:
-                tf.summary.scalar("exploration", self.model.exploration_rate , step=global_step)
-                tf.summary.scalar("learning_rate", self.model.learning_rate , step=global_step)
-                tf.summary.scalar("gamma", self.model.gamma , step=global_step)
-
-
+                with tf.name_scope("Hyperparameter"):
+                    tf.summary.scalar("Exploration", self.model.exploration_rate , step=global_step)
+                    tf.summary.scalar("Learning Rate", self.model.learning_rate , step=global_step)
+                    tf.summary.scalar("Gamma", self.model.gamma , step=global_step)
+                    tf.summary.scalar("Tau", self.model.tau , step=global_step)
 
         if  (alive == 0 or self.hitCounter >= maxScore):
             with writer.as_default():
-                tf.summary.scalar("reward_ep", self.reward_ep/self.ep_step, step=global_step)
-                tf.summary.scalar("score", self.hitCounter, step=global_step)
-                tf.summary.scalar("action_0%", self.a0/self.ep_step, step=global_step)
-                tf.summary.scalar("action_1%", self.a1/self.ep_step, step=global_step)
-                tf.summary.scalar("action_2%", self.a2/self.ep_step, step=global_step)
-                tf.summary.scalar("action_3%", self.a3/self.ep_step, step=global_step)
-                tf.summary.scalar("action_4%", self.a4/self.ep_step, step=global_step)
-                tf.summary.scalar("ep_length", self.ep_step, step=global_step)
+                with tf.name_scope("General"):
+                    tf.summary.scalar("Reward_EP", self.reward_ep / self.ep_step, step=global_step)
+                    tf.summary.scalar("Score", self.hitCounter, step=global_step)
+                    tf.summary.scalar("Episode length", self.ep_step, step=global_step)
+                    process_ram_usage = Ram.get_process_ram_usage("java.exe")
+                    tf.summary.scalar(f"{"java.exe"} RAM Usage (MB)", process_ram_usage, step=global_step)
+
+                total_reward = self.reward_shot + self.reward_aim + self.reward_death + self.reward_hits + self.reward_goal + self.reward_w + self.reward_s + self.reward_exist
+                total_actions = self.a0 + self.a1 + self.a2 +self.a3 + self.a4 + self.a5 + self.a6
+
+                rewards_dict = {
+                    "Shot": self.reward_shot,
+                    "Aim": self.reward_aim,
+                    "Death": self.reward_death,
+                    "Asteroid hits": self.reward_hits,
+                    "Reaching goal": self.reward_goal,
+                    "W": self.reward_w,
+                    "S": self.reward_s,
+                    "Agent exists": self.reward_exist,
+                }
+                actions_dict = {
+                    "Action_0": self.a0,
+                    "Action_1": self.a1,
+                    "Action_2": self.a2,
+                    "Action_3": self.a3,
+                    "Action_4": self.a4,
+                    "Action_5": self.a5,
+                    "Action_6": self.a6,
+                }
+                percentage_actions = {k: (v / total_actions) * 100 if total_actions != 0 else 0 for k, v in actions_dict.items()}
+
+                #actions pie chart
+                action_chart = Graphics.plot_action_chart(actions_dict, percentage_actions, total_actions, global_step)
+                tf.summary.image("Actions per episode", action_chart, step=global_step)
+                #reward diagram
+                reward_diagram = Graphics.plot_reward_diagram(rewards_dict, total_reward, global_step)
+                tf.summary.image("Rewards per Episode", reward_diagram, step=global_step)
+
                 print(self.hitCounter)
                 self.a0=0
                 self.a1=0
                 self.a2=0
                 self.a3=0
                 self.a4=0
-                #self.model.save("DQN/"+logname+"_A")
+                self.a5=0
+                self.a6=0
+                self.reward_shot=0
+                self.reward_aim=0
+                self.reward_w=0
+                self.reward_s=0
+                self.reward_death=0
+                self.reward_hits=0
+                self.reward_goal=0
+                self.reward_exist=0
+                self.model.save("DQN/"+logname)
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
-                #self.model.save("DQN/"+logname+"_short")
+                self.model.save("DQN/"+logname+"_short")
                 self.short_ep=self.ep_step
-                print("saved...",self.ep_step,"global step:",global_step)
+                #print("saved...",self.ep_step,"global step:",global_step)
             self.reward_ep=0
             self.done = True
 
@@ -302,12 +375,12 @@ class GameEnv(gym.Env):
         gameData = sendAction(10)
         self.state={
             #'spaceship_rotation':gameData['spaceship_rotation'],
+            'posDistance': gameData['posDistance'],
             'pitch': gameData['pitch'],
             'yaw': gameData['yaw'],
             'hit': gameData['hit'],
-            'alive': gameData['alive']
+            'alive': gameData['alive'],
         }
-        self.reward = 0
         self.ep_step=0
         self.done = False
         info = {}
@@ -372,7 +445,7 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 
 #Training:
-#modelInit(env,logname,0.4,0,0.8,500000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
-modelPredict(env,logname,1)#todo nach 1 score interrate all asteroidlist2 yaw and pitch dis smallest next
-#modelTrainAutomatic(env, logname, 0.3,0.05,0.7, 1000000, 1)
+#modelInit(env,logname,0.8,0.05,0.7,4000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+modelPredict(env,logname,1)
+#modelTrainAutomatic(env, logname, 0.3,0.1,0.5, 200000, 1)
 

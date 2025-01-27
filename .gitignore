@@ -46,6 +46,9 @@ outTmp/
 /kotlin-native/dist
 kotlin-ide/
 
+/src/main/kotlin/cga/exercise/game/py/setup.py
+/src/main/kotlin/cga/exercise/game/py/logs
+/src/main/kotlin/cga/exercise/game/py/__pycache__
 # ignore VSC directory
 .vscode/
 

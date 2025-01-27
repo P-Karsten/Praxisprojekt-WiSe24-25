@@ -23,6 +23,7 @@ class GameData(BaseModel):
     hit: bool
     alive: bool
     counter:float
+    posDistance: float
 
 global starttime
 starttime=time.time()
@@ -55,7 +56,8 @@ async def receive_game_data(data: GameData):
         yaw=data.yaw,
         hit=data.hit,
         alive=data.alive,
-        counter=data.counter
+        counter=data.counter,
+        posDistance=data.posDistance
     )
     savedData = response_data
     #print(savedData.yaw)
@@ -92,5 +94,6 @@ async def receive_action(data: int = Body(...)):
         "yaw": savedData.yaw,
         "hit": savedData.hit,
         "alive": savedData.alive,
-        "counter":savedData.counter
+        "counter":savedData.counter,
+        "posDistance": savedData.posDistance
     }
