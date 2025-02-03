@@ -15,6 +15,17 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
         translate(offset)
     }
 
+    fun setRay(target: Matrix4f) {
+        modelMatrix.add(target)
+        updateModelMatrix()
+    }
+
+    fun rayToSpaceship(target: Matrix4f) {
+        modelMatrix.identity()
+        modelMatrix.add(target)
+        updateModelMatrix()
+    }
+
     /**
      * Returns copy of object model matrix
      * @return modelMatrix
@@ -82,6 +93,9 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
         modelMatrix.rotate(quaternion)  // Apply the quaternion rotation
     }
     fun setRotation(pitch: Float, yaw: Float, roll: Float) {
+
+        val tmpPos = Vector3f(0f,0f,0f)
+        val pos = getWorldPosition()
         // Reset the quaternion to identity
         quaternion.identity()
 
@@ -92,10 +106,15 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
 
         // Combine rotations (yaw * pitch * roll)
         quaternion = yawQuat.mul(pitchQuat).mul(rollQuat)
-
-        // Update the model matrix to reflect the new rotation
         modelMatrix.identity()
         updateModelMatrix()
+        //modelMatrix.translate(pos)
+        /*modelMatrix[3][0] = pos.x  // m_{03} (Translation in x)
+        modelMatrix[3][1] = pos.y  // m_{13} (Translation in y)
+        modelMatrix[3][2] = pos.z  // m_{23} (Translation in z)*/
+        //println("Ray Modelmatrix BEFORE: " + modelMatrix)
+        modelMatrix.setTranslation(pos)
+        //println("Ray Modelmatrix AFTER: " + modelMatrix)
     }
     /**
      * Rotates object around given rotation center.
@@ -131,6 +150,7 @@ open class Transformable(private var modelMatrix: Matrix4f = Matrix4f(), var par
     fun translate(deltaPos: Vector3f) {
         // todo
         modelMatrix.translate(deltaPos)
+        //updateModelMatrix()
         //throw NotImplementedError()
     }
 

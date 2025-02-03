@@ -23,14 +23,14 @@ import ram as Ram
 #Run tensor
 #tensorboard --logdir=logs/game_rewards/
 predictv=True
-maxScore = 15
+maxScore = 30
 learningRate = 0.0001
 #learningRate = 0.00035
 timesteps = 65000
 saveInterval = 100000
 #eplorationRate = 0.45
 max_stepsEpisode = 10000
-logname='dqn_spaceship_asteroid_shot_FinalGame-v12'
+logname='dqn_spaceship_asteroid_shot_FinalGame-v22'
 apiURL = 'http://127.0.0.1:8000/'
 log_dir = "logs/game_rewards/"+logname+"/" + datetime.datetime.now().strftime("%d.%m.%Y--%H_%M_%S")
 writer = tf.summary.create_file_writer(log_dir)
@@ -110,7 +110,7 @@ class GameEnv(gym.Env):
         self.reward_ep=0.0
         self.high_score=0.0
         self.short_ep=max_stepsEpisode*500
-        pos_LOW = np.float32(-1800)
+        pos_LOW = np.float32(0)
         pos_HIGH = np.float32(1800)
         rot_LOW = np.float32(-np.pi)
         rot_HIGH = np.float32(np.pi)
@@ -206,57 +206,63 @@ class GameEnv(gym.Env):
         astDistance = gameData['posDistance']
 
         #print(astDistance)
-        self.reward-=3
-        self.reward_exist-=3
+        self.reward-=0.5
+        self.reward_exist-=0.5
         if (alive == 0):
-            self.reward -= 1000
-            self.reward_death -= 1000
+            self.reward -= 2000
+            self.reward_death -= 2000
         if (self.hit >= maxScore):
             self.reward += 50000000/((self.ep_step)**0.85)
             self.reward_goal += 50000000/((self.ep_step)**0.85)
 
-        if(hit > self.prevhit and abs(yawdistance)<=0.03 and abs(pitchdistance)<=0.03):
-            self.reward+=20
-            self.reward_hits+=20
+        if(hit > self.prevhit and abs(yawdistance)<=0.045 and abs(pitchdistance)<=0.045):
+            self.reward+=500
+            self.reward_hits+=500
 
         if(hit>self.prevhit):
             self.hitCounter+=1
-            self.reward+=5
-            self.reward_hits+=5
+            self.reward+=100
+            self.reward_hits+=100
             self.prevhit=hit
 
-        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025)):
+        if((yawdistance==0.0 or abs(yawdistance)<=0.03) and (pitchdistance==0.0 or abs(pitchdistance)<=0.03)):
             self.reward+=1.5
             self.reward_aim+=1.5
 
         if((yawdistance==0.0 or abs(yawdistance)<=0.075) and (pitchdistance==0.0 or abs(pitchdistance)<=0.075)):
-            if(astDistance <= 300 and self.currentaction==5):
-                self.reward+=0.1
-                self.reward_s+=0.1
+            if(astDistance <= 200 and self.currentaction==5):
+                self.reward+=0.5
+                self.reward_s+=0.5
             if(astDistance >= 600 and self.currentaction==5):
-                self.reward-=0.2
-                self.reward_s-=0.2
-            if(astDistance >= 600 and self.currentaction==6):
-                self.reward+=0.1
-                self.reward_w+=0.1
-            if(astDistance <= 300 and self.currentaction==6):
-                self.reward-=0.2
-                self.reward_w-=0.2
+                self.reward-=0.6
+                self.reward_s-=0.6
+            if(astDistance >= 800 and self.currentaction==6):
+                self.reward+=1
+                self.reward_w+=1
+            if(astDistance <= 250 and self.currentaction==6):
+                self.reward-=1.5
+                self.reward_w-=1.5
 
-
-        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025) and astDistance<=800 and self.currentaction==2):
-            self.reward+=500
-            self.reward_shot+=500
-        if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025) and astDistance>=800 and self.currentaction==2):
-            self.reward-=15
-            self.reward_shot-=15
+        self.reward-=(abs(yawdistance))*0.2
+        self.reward_aim-=(abs(yawdistance))*0.2
+        self.reward-=(abs(pitchdistance))*0.2
+        self.reward_aim-=(abs(pitchdistance))*0.2
+        #if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025) and astDistance<=800 and self.currentaction==2):
+            #self.reward+=500
+            #self.reward_shot+=500
+        if((yawdistance==0.0 or abs(yawdistance)<=0.033) and (pitchdistance==0.0 or abs(pitchdistance)<=0.033) and astDistance<=800 and self.currentaction==2):
+            self.reward+=5
+            self.reward_shot+=5
+        #if((yawdistance==0.0 or abs(yawdistance)<=0.025) and (pitchdistance==0.0 or abs(pitchdistance)<=0.025) and astDistance>=800 and self.currentaction==2):
+            #self.reward-=15
+            #self.reward_shot-=15
         if abs(yawdistance) < abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01:
-            self.reward += 0.11
-            self.reward_aim += 0.11
+            self.reward += 0.1
+            self.reward_aim += 0.1
             #print("yaw before",(abs(self.previous_yawdistance),abs(yawdistance)))
         if abs(pitchdistance) < abs(self.previous_pitchdistance) and (self.currentaction==3 or self.currentaction==4)and abs(pitchdistance)>0.01:
-            self.reward += 0.11
-            self.reward_aim += 0.11
+            self.reward += 0.1
+            self.reward_aim += 0.1
             #print("pitch before",(abs(self.previous_pitchdistance),abs(pitchdistance)))
         if abs(yawdistance) > abs(self.previous_yawdistance) and (self.currentaction==0 or self.currentaction==1) and abs(yawdistance)>0.01:
             self.reward -= 0.1
@@ -415,12 +421,13 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
     x = 0
     env.predictv = False
     while x < cycles:
+        #model = DQN.load("DQN/"+modelName, env=env, device='cuda')
         model = DQN.load("DQN/"+modelName, env=env, device='cuda')
         env.setModel(model)
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
         model.exploration_fraction = expFrac
-        model.buffer_size = 1000000
+        model._setup_model()
         model.learn(total_timesteps=totalSteps, log_interval=1)
         print('Model saved...')
         model.save("DQN/"+modelName)
@@ -445,7 +452,8 @@ def modelPredict(env: GameEnv, modelName: str, episodes: int):
 
 
 #Training:
-#modelInit(env,logname,0.8,0.05,0.7,4000000,0.00025)#todo rotations beschleunigung zb. 20 gleiche inputs schneller drehen #todo only prev_dis reward ??
+#modelInit(env,logname,0.4,0.05,0.65,2000000,0.00025)
+#modelInit(env,logname,0.5,0.075,0.7,1500000,0.00025)
 modelPredict(env,logname,1)
-#modelTrainAutomatic(env, logname, 0.3,0.1,0.5, 200000, 1)
+##modelTrainAutomatic(env, logname, 0.05,0.025,0.7, 1000000, 2)
 

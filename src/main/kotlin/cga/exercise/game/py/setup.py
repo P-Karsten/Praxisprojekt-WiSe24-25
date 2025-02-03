@@ -2,7 +2,7 @@
 import subprocess
 
 
-directory = r"C:\Users\loris\IdeaProjects\Praxisprojekt-WiSe24-25v2\src\main\kotlin\cga\exercise\game\py"
+directory = r"C:\Users\Pascal\Documents\VsCode Projects\Praxisprojekt-WiSe24-25\src\main\kotlin\cga\exercise\game\py"
 
 
 commands = [
