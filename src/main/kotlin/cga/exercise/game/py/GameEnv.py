@@ -188,6 +188,7 @@ class GameEnv(gym.Env):
         self.model = model
 
     def step(self, action):
+        self.currentaction=action
         gameData = sendAction(self.currentaction)
         self.currentaction=action
         hit = gameData['hit']
@@ -289,7 +290,9 @@ class GameEnv(gym.Env):
         global_step = getattr(self, "step_count", 0)
         self.step_count = global_step + 1
         with writer.as_default():
-            tf.summary.scalar("Reward", self.reward_ep, step=global_step)
+            tf.summary.scalar("_reward", self.reward_ep, step=global_step)
+
+
             if self.model and math.fmod(self.step_count,500)==0:
                 with tf.name_scope("Hyperparameter"):
                     tf.summary.scalar("Exploration", self.model.exploration_rate , step=global_step)
@@ -299,6 +302,40 @@ class GameEnv(gym.Env):
 
         if  (alive == 0 or self.hitCounter >= maxScore):
             with writer.as_default():
+                with tf.name_scope("General"):
+                    tf.summary.scalar("Reward_EP", self.reward_ep / self.ep_step, step=global_step)
+                    tf.summary.scalar("Score", self.hitCounter, step=global_step)
+                    tf.summary.scalar("Episode length", self.ep_step, step=global_step)
+
+
+                total_reward = self.reward_shot + self.reward_aim + self.reward_death + self.reward_hits + self.reward_goal + self.reward_exist
+                total_actions = self.a0 + self.a1 + self.a2 +self.a3 + self.a4
+
+                rewards_dict = {
+                    "Shot": self.reward_shot,
+                    "Aim": self.reward_aim,
+                    "Death": self.reward_death,
+                    "Asteroid hits": self.reward_hits,
+                    "Reaching goal": self.reward_goal,
+                    "Agent exists": self.reward_exist,
+                }
+                actions_dict = {
+                    "Action_0": self.a0,
+                    "Action_1": self.a1,
+                    "Action_2": self.a2,
+                    "Action_3": self.a3,
+                    "Action_4": self.a4,
+
+                }
+                percentage_actions = {k: (v / total_actions) * 100 if total_actions != 0 else 0 for k, v in actions_dict.items()}
+
+                #actions pie chart
+                action_chart = Graphics.plot_action_chart(actions_dict, percentage_actions, total_actions, global_step)
+                tf.summary.image("Actions per episode", action_chart, step=global_step)
+                #reward diagram
+                reward_diagram = Graphics.plot_reward_diagram(rewards_dict, total_reward, global_step)
+                tf.summary.image("Rewards per Episode", reward_diagram, step=global_step)
+
                 with tf.name_scope("General"):
                     tf.summary.scalar("Reward_EP", self.reward_ep / self.ep_step, step=global_step)
                     tf.summary.scalar("Score", self.hitCounter, step=global_step)
@@ -353,12 +390,12 @@ class GameEnv(gym.Env):
                 self.reward_hits=0
                 self.reward_goal=0
                 self.reward_exist=0
-                self.model.save("DQN/"+logname)
+                self.model.save("DQN/"+logname+"_A")
             if(self.ep_step<=self.short_ep and self.hitCounter>=maxScore):
                 self.model.save("DQN/"+logname+"_short")
                 self.short_ep=self.ep_step
-                #print("saved...",self.ep_step,"global step:",global_step)
-            self.reward_ep=0
+                print("saved...",self.ep_step,"global step:",global_step)
+                print("saved...",self.ep_step,"global step:",global_step)
             self.done = True
 
         #self.state = gameData
@@ -377,6 +414,7 @@ class GameEnv(gym.Env):
     def reset(self, seed=None, options=None):
         self.hitCounter = 0
         self.prevhit=0
+        self.reward_ep=0
         self.reward = 0
         gameData = sendAction(10)
         self.state={
@@ -427,6 +465,7 @@ def modelTrainAutomatic(env: GameEnv, modelName: str, expInit: float, expFinal: 
         model.exploration_initial_eps = expInit
         model.exploration_final_eps = expFinal
         model.exploration_fraction = expFrac
+        model.buffer_size = 1000000
         model._setup_model()
         model.learn(total_timesteps=totalSteps, log_interval=1)
         print('Model saved...')
